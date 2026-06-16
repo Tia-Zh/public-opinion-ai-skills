@@ -10,6 +10,13 @@
 | `large-scale-sentiment-analysis` | 大规模中文评论情感/立场/风险分类：抽样 AI 标注、分类器迁移、低置信度和边界样本复核、质量摘要。 |
 | `public-opinion-data-workflow` | 融合版入口：先走通用数据处理流程，遇到大样本、全量 AI 成本高或需要复核的情感分析任务时，转入专项流程。 |
 
+## 能力概览
+
+- 有预设分类时：按用户给定分类、关键词规则或标签体系处理。
+- 没有预设分类时：可先运行主题发现，使用 TF-IDF + k-means 找候选主题，再由 agent 或人工命名、合并和修正。
+- 情感分析小样本时：可以直接使用 AI 按指定标签判断。
+- 情感分析大样本时：建议走抽样 AI 标注、分类器迁移、低置信度/边界/反讽/随机样本复核的迭代流程。
+
 ## 安装包
 
 可直接使用 `dist/` 下的安装包：
@@ -33,6 +40,25 @@
 5. 输出处理口径、每步数量、结果表、统计图和质量摘要。
 ```
 
+## 自检
+
+本仓库提供一个轻量自检脚本，用于检查 skill 目录和安装包结构是否完整：
+
+```powershell
+python tools/doctor.py --skip-deps
+```
+
+如果本机 Python 环境已安装 `pandas` 和 `openpyxl`，也可以运行：
+
+```powershell
+python tools/doctor.py
+```
+
+## 示例
+
+- `examples/sample_comments.csv`：小型中文评论样例。
+- `examples/demo_prompts.md`：通用处理、无预设主题发现、大规模情感分析的演示指令。
+
 ## 目录结构
 
 ```text
@@ -42,6 +68,8 @@ skills/
   public-opinion-data-workflow/
 dist/
   *.zip
+examples/
+tools/
 ```
 
 每个 skill 目录包含：

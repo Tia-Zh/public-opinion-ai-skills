@@ -13,8 +13,9 @@ Use this skill as the single integrated workflow for public-opinion data process
 2. Infer field roles: text, source/platform, date/time, ID/link/hash, author/user, metrics, category, and unknown.
 3. Normalize fields across sheets only after preserving traceability: source file, source sheet, and source row.
 4. Clean text, remove empty or low-information rows, deduplicate, filter keywords, and generate previewable logs.
-5. Decide whether the task needs ordinary labels or the large-scale sentiment workflow.
-6. Export new files only. Never overwrite the user's original data unless explicitly asked.
+5. If the user provides categories, apply those categories. If no category taxonomy is provided, run topic discovery first and treat the clusters as candidate themes that still need naming/merging.
+6. Decide whether the task needs ordinary labels or the large-scale sentiment workflow.
+7. Export new files only. Never overwrite the user's original data unless explicitly asked.
 
 ## Route Selection
 
@@ -40,6 +41,7 @@ Use scripts in `scripts/data_processing/` when they fit:
 - `inspect_tabular.py`: inspect Excel/CSV/TSV structure and likely field roles.
 - `process_tabular.py`: configurable merge, clean, filter, dedupe, and export.
 - `make_charts.py`: generate distribution and trend charts.
+- `discover_topics.py`: use dependency-light TF-IDF + k-means to discover rough candidate topics when no category taxonomy is provided.
 
 Core requirements:
 
@@ -48,6 +50,7 @@ Core requirements:
 - preserve source sheet and row number;
 - use understandable output column names;
 - create charts with readable titles, labels, and fonts.
+- do not present k-means clusters as final sentiment labels; use them for topic exploration, sampling, or draft theme naming.
 
 ## Large-Scale Sentiment Workflow
 

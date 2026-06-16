@@ -6,3 +6,4 @@ Thumbs.db
 .venv/
 venv/
 *.log
+work_demo/

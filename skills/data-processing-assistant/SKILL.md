@@ -61,6 +61,7 @@ Otherwise, make a reasonable assumption, state it briefly, and continue.
 - **Deduplicate**: exact text, normalized text, prefix length, selected key columns, or fuzzy similarity when justified.
 - **Filter**: keywords with any/all matching, date range, numeric range, category inclusion/exclusion, missing/non-missing values.
 - **Semantic judgment**: field recognition, exclusion-word suggestions, sentiment labels, topic labels, summaries, and clustering labels.
+- **Topic discovery**: when the user has no preset categories, use rough clustering to discover candidate themes, then ask the user or an LLM to name/merge the clusters before treating them as report categories.
 - **Large-scale sentiment handoff**: for high-volume or nuanced Chinese comments, use active-learning sentiment analysis instead of full-row AI labeling.
 - **Analyze**: distributions, crosstabs, time trends, grouped summaries, top terms, and outlier checks.
 - **Visualize**: bar charts, line charts, stacked charts, heatmaps, scatter plots, and cluster maps when suitable.
@@ -73,6 +74,7 @@ Use bundled scripts when they fit; patch or extend them for the user's exact tas
 - `scripts/inspect_tabular.py`: inspect Excel/CSV/TSV files and produce a schema summary.
 - `scripts/process_tabular.py`: run configurable cleaning, merging, filtering, dedupe, and export.
 - `scripts/make_charts.py`: generate common charts from processed tables.
+- `scripts/discover_topics.py`: use dependency-light TF-IDF + k-means to discover rough candidate topics when no category taxonomy is provided.
 
 Example:
 
