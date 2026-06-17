@@ -24,6 +24,19 @@ Use audit sampling:
 
 After each audit round, update label definitions or classifier calibration before running the next round.
 
+## Convergence Checks
+
+Do not treat generated files or a fixed round count as convergence. A run is converged only when the quality evidence is stable enough for the task:
+
+- the remaining low-confidence and boundary share is small enough for the use case;
+- a new AI-reviewed audit batch largely agrees with the classifier predictions;
+- the full-data label distribution changes only slightly between rounds;
+- per-class random audit samples show few obvious errors;
+- important categories no longer frequently confuse with each other;
+- every final report label has enough AI-reviewed examples, or has been deliberately merged/removed with a documented reason.
+
+Denominator chains, distribution tables, and exported audit samples are required reporting evidence, but they are not convergence by themselves. User acceptance can stop a run, but if the quality checks above are not met, describe the output as an incomplete or diagnostic run instead of a final converged result.
+
 ## Report Wording
 
 > Quality was checked through reference-label comparison where available and through targeted audit samples otherwise. Low-confidence, boundary, sarcasm-like, and random examples were reviewed to identify taxonomy or classifier issues.

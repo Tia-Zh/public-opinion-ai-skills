@@ -44,6 +44,19 @@ The specialist workflow should produce:
 - audit samples for low-confidence, uncertain, sarcasm-like, and random rows when available;
 - charts and denominator tables.
 
+## Convergence Requirement
+
+The specialist output is not complete just because it produced a distribution table. Before returning a result as final, check whether:
+
+- low-confidence and boundary rows have fallen to an acceptable level;
+- a fresh AI-reviewed audit batch mostly agrees with the classifier;
+- label distribution is stable across rounds;
+- random samples show few obvious errors;
+- important labels are no longer frequently confused;
+- every final report label has enough AI-reviewed examples, or the label schema was adjusted with a documented reason.
+
+If these checks are not met, return the current files as an interim or diagnostic result and state which review step is still needed. User confirmation may end the task, but it does not convert an unstable result into a converged one.
+
 ## Return To Main Workflow
 
 After the specialist workflow finishes:

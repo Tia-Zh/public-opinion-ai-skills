@@ -38,6 +38,19 @@ When reference labels do not exist, generate:
 - sarcasm-like or mixed-sentiment sample when relevant;
 - short quality notes with known limitations.
 
+## Convergence Checks
+
+Minimum output files are not the same as convergence. For sentiment, stance, or public-opinion classification, treat the result as converged only when:
+
+- the remaining low-confidence and boundary share is acceptable for the task;
+- a new AI-reviewed audit batch largely agrees with classifier predictions;
+- full-data label shares no longer move sharply between rounds;
+- random per-class audits show few obvious mistakes;
+- key labels no longer repeatedly confuse with each other;
+- each final report label has enough AI-reviewed examples, or has been merged/removed with a documented reason.
+
+The denominator chain, label distribution, and audit samples are required evidence. They prove the process is traceable, but they do not prove convergence until the audit results are reviewed. If the user asks to stop before these checks pass, mark the run as stopped early or diagnostic rather than final.
+
 ## Recommended Wording
 
 > Existing labels were used as a reference check rather than as absolute ground truth. The comparison reports agreement rate, confusion patterns, and disagreement samples for review.
