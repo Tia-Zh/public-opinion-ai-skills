@@ -48,6 +48,8 @@ If the user does not provide labels, do not default blindly to positive/neutral/
 
 Do not start interpreting full classifier results until every target label has enough AI-labeled examples to be learnable. As a practical default, aim for at least 20-30 AI-labeled examples per label, and more for subtle or rare labels such as `critical/questioning`, `neutral/analytical`, or `sarcasm`. If a label has fewer examples, run targeted sampling for that label before treating a zero or near-zero prediction share as meaningful.
 
+Use targeted supplementation when any plausible label is missing or underrepresented. Targeted supplementation means: use weak rules, anchor phrases, keyword candidates, or cluster examples to find likely examples of an underrepresented label; send those candidates to the LLM or a human reviewer; then add only the confirmed labels to the training pool. Do not add weak-rule labels directly as truth.
+
 ## Workflow
 
 When invoked by `data-processing-assistant`, expect the main skill to provide the input file path, text column, optional source/date/hash columns, proposed labels, and output folder. Return cleaned data, label quality checks, audit samples, charts, and denominator notes so the main skill can package the final workbook/report.
@@ -157,6 +159,14 @@ For each round:
 
 Avoid class starvation. If a target label is absent or nearly absent in the AI-labeled sample, uncertainty sampling alone will not recover it because the classifier has not learned that class. Use weak rules, anchor phrases, keyword candidates, or clustering to find possible examples for that label, then ask the LLM to judge them. Treat weak rules as candidate generators, not final labels.
 
+For targeted supplementation, use `scripts/make_targeted_samples.py` when a weak label column or keyword map is available. Example:
+
+```powershell
+python scripts/make_targeted_samples.py --input prepared_texts.csv --output-dir targeted_round --text-col clean_text --target-labels "质疑批评,理性中立" --keywords targeted_keywords.csv --per-label 100
+```
+
+The output `targeted_label_candidates.csv` is a review batch, not final labels. Label it with the LLM prompt schema, merge confirmed labels, then retrain.
+
 Do not stop because a fixed number of rounds has been reached. Stop only when one of these is true:
 
 - the remaining low-confidence/boundary share is small enough for the task;
@@ -237,6 +247,7 @@ Bundled scripts are starting points. Patch column names and label lists for the 
 - `scripts/merge_labels.py`: merge labels and validate row_id coverage.
 - `scripts/train_text_classifier.py`: train a dependency-light baseline classifier and score confidence/margins.
 - `scripts/select_uncertain.py`: select low-confidence and boundary samples.
+- `scripts/make_targeted_samples.py`: create targeted review batches for underrepresented labels using weak labels or keyword candidates.
 - `scripts/build_summary_charts.py`: create summary tables and monthly charts.
 - `scripts/compare_labels.py`: compare predictions with an existing reference label column when available.
 
