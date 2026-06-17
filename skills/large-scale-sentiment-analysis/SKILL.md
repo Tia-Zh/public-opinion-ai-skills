@@ -34,7 +34,8 @@ Avoid saying "the LLM manually labeled every row" unless every row was actually 
 For every task, define:
 
 - task-specific label roles, not just label names;
-- final analysis labels that will appear in the report distribution;
+- user-requested output labels that will appear in the final report distribution, such as `正面/中性/负面`;
+- internal processing labels that may be necessary for relevance, denominator, exclusion, or quality control even when the user did not name them;
 - exclusion labels such as irrelevant, spam, or low-information when they are part of the denominator policy;
 - review statuses such as needs-review, ambiguous, conflict, or model-uncertain when they should trigger review rather than become ordinary classifier labels;
 - canonical label names and allowed aliases;
@@ -45,6 +46,15 @@ Do not begin with keyword matching. Begin with label definitions and edge cases.
 Before the first LLM batch, create or update a `label_schema.md` or equivalent table in the output directory. Use one language for canonical labels throughout the run. If a later LLM batch returns aliases or another language, normalize labels before training the classifier.
 
 At schema time, decide which labels are report labels and which are review statuses. Do not hard-code a label named `uncertain`; different tasks may use names such as `ambiguous`, `needs_review`, `mixed`, `insufficient_context`, `irrelevant`, or local Chinese equivalents. If a category is a final report bucket, include enough confirmed examples and define it in the schema. If it only means "the model is unsure and this row needs review", keep it as a review status derived from confidence, margin, disagreement, short/context-poor text, or audit results, not as an ordinary classifier label.
+
+Treat the user's requested labels as the output schema, not necessarily the full internal analysis schema. If the user says "classify as positive/neutral/negative" or gives four report categories, still add internal categories or flags when needed:
+
+- `相关性`: relevant vs irrelevant/off-topic;
+- `有效性`: meaningful vs low-information/spam;
+- `复核状态`: needs-review/model-uncertain/conflict;
+- optional exclusion labels that are reported separately and excluded from the final output denominator.
+
+Do not force irrelevant, off-topic, spam, pure contextless replies, or insufficient-context rows into `中性` just because the user only requested `正面/中性/负面`. `中性` means relevant but with no clear positive or negative attitude. Exclusion rows should be counted and disclosed separately, then removed from the denominator used for the requested output labels unless the user explicitly wants them included.
 
 Do not use vague words such as "maybe", "possibly", or "not sure" alone to find ambiguity/review samples; long texts can contain those words while still having a clear stance. Prefer task-specific strategies such as very short context-poor texts, conflicting cues, missing context, weak-rule/model disagreement, or label-specific anchors.
 

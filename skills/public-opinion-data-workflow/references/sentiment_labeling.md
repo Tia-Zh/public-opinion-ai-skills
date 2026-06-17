@@ -4,11 +4,21 @@ Use this reference when the user asks for emotion, sentiment, attitude, tone, or
 
 ## Default Labels
 
-Use three labels unless the user provides another label set:
+Use three output labels unless the user provides another report label set:
 
 - `正面`: approval, praise, satisfaction, support, trust, gratitude, relief, constructive optimism.
-- `中立`: factual description, unclear attitude, simple forwarding, objective question, mixed emotion without a clear dominant direction.
+- `中立`: relevant factual description, objective question, balanced discussion, or relevant comment with no clear positive/negative direction.
 - `负面`: complaint, dissatisfaction, anger, worry, fear, accusation, sarcasm, distrust, grief, urgency, or criticism.
+
+These are final output labels, not the full internal processing schema. Before assigning them, decide whether the row is relevant to the user's topic and meaningful enough to enter the denominator.
+
+Use internal flags or labels when needed:
+
+- `无关/偏题`: unrelated to the requested topic, cross-topic chatter, advertising, or platform noise.
+- `低信息/不可判断`: empty, contextless, unusable, or pure signal where relevance cannot be established.
+- `需复核`: conflicting cues, unclear target, low confidence, or model/human disagreement.
+
+Report these separately. Do not force them into `中立` unless the user explicitly asks for every row to receive one of the output labels.
 
 ## Judgment Rules
 
@@ -23,7 +33,7 @@ For public-opinion or service-response data, classify by the author's stance or 
 
 Sarcasm and rhetorical praise should be treated by actual meaning, not surface praise words.
 
-If the text is too short, ambiguous, or only contains a keyword with no attitude, choose `中立` and lower the confidence.
+If the text is relevant but has no clear positive or negative attitude, choose `中立`. If it is unrelated, off-topic, spam, contextless, or impossible to connect to the user's topic, mark it as an exclusion/review category instead of `中立`.
 
 ## Recommended Output Columns
 
@@ -32,5 +42,7 @@ For each labeled row, add:
 - `情绪标签`: `正面` / `中立` / `负面`
 - `情绪置信度`: high / medium / low, or 0-1 if the user requests numeric confidence
 - `情绪判断依据`: short plain-language reason
+- `相关性/有效性`: relevant/effective vs irrelevant/low-information when needed
+- `是否纳入情感分母`: yes/no when exclusions exist
 
 For large datasets, label in batches and sample-check edge cases. If confidence is low or the consequences are important, export a `需人工复核` column.

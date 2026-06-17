@@ -103,10 +103,15 @@ After each AI-labeled sample batch, check the label distribution before training
 
 For public-opinion sentiment tasks, define:
 
-- final labels, such as positive, neutral, negative, risk concern, irrelevant/low-information, and uncertain;
+- user-requested output labels, such as positive, neutral, negative, or the four categories named by the user;
+- internal processing labels or flags needed for relevance, denominator, exclusion, and review, even when the user did not name them;
+- exclusion labels such as irrelevant/off-topic, spam, or low-information when they should be reported separately instead of being forced into neutral;
+- review statuses such as needs-review, model-uncertain, conflict, or insufficient-context when they should trigger review rather than become final report labels;
 - concise criteria for each label;
 - examples and counterexamples;
 - how to treat sarcasm, mixed positive/negative sentiment, low-context comments, and off-topic promotional text.
+
+Treat the user's requested labels as final output labels, not as the entire internal analysis schema. For example, when the user asks for `正面/中性/负面`, first decide whether each row is relevant and meaningful. Only relevant/effective rows enter the `正面/中性/负面` denominator. Off-topic, spam, and unusable low-information rows should be counted separately and excluded from the sentiment denominator unless the user explicitly asks to include them.
 
 When the task is a new issue, create the taxonomy from evidence:
 
