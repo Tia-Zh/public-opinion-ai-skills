@@ -87,13 +87,14 @@ Output:
 
 ### 2. Create LLM Batches
 
-Use `scripts/make_llm_batches.py` to create stratified or full batches. Prefer stratified seed batches first:
+Use `scripts/make_llm_batches.py` to create stratified or full batches. Prefer hybrid stratified seed batches first: cover important strata, then fill the remaining sample randomly so the seed still roughly reflects the full dataset.
 
-- platform/source;
-- month/date;
-- event window;
-- text length bucket;
+- platform/source when available;
+- text length bucket, especially very short and long comments;
+- month/date or event window only when the task is time-sensitive and the column is reliable;
 - random sample.
+
+If platform/source volumes are highly imbalanced, do not rely on pure overall random sampling because small platforms may disappear from the seed. Also do not use pure equal-platform sampling as the only basis because tiny platforms may be overrepresented. Use a hybrid approach: minimum coverage for each meaningful platform/source, caps for tiny strata, and random/proportional fill for the remaining sample. Final result shares must still use the chosen denominator, usually the volume denominator.
 
 For active learning rounds, batch only uncertain/boundary cases.
 
@@ -302,8 +303,8 @@ If showing risk voices separately, note:
 
 Bundled scripts are starting points. Patch column names and label lists for the concrete dataset.
 
-- `scripts/prepare_text_data.py`: clean, hash, dedupe, create `row_id`.
-- `scripts/make_llm_batches.py`: create LLM-ready batch files and a prompt.
+- `scripts/prepare_text_data.py`: clean, hash, mark duplicates, create `row_id`.
+- `scripts/make_llm_batches.py`: create hybrid stratified AI-labeling batch files and a prompt.
 - `scripts/merge_labels.py`: merge labels and validate row_id coverage.
 - `scripts/validate_label_coverage.py`: check whether each final label has enough AI-reviewed examples before training.
 - `scripts/train_text_classifier.py`: train a lightweight classifier from AI-reviewed labels and score confidence/margins.

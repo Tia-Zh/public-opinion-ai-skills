@@ -40,7 +40,7 @@ Switch to the large-scale sentiment workflow when:
 Use scripts in `scripts/data_processing/` when they fit:
 
 - `inspect_tabular.py`: inspect Excel/CSV/TSV structure and likely field roles.
-- `process_tabular.py`: configurable merge, clean, filter, dedupe, and export.
+- `process_tabular.py`: configurable merge, clean, filter, optional dedupe, and export.
 - `make_charts.py`: generate distribution and trend charts.
 - `discover_topics.py`: use dependency-light TF-IDF + k-means to discover rough candidate topics when no category taxonomy is provided.
 - `privacy_audit.py`: inspect likely sensitive columns and risky text patterns before AI labeling or export.
@@ -61,8 +61,8 @@ Core requirements:
 
 Use scripts in `scripts/sentiment/`:
 
-- `prepare_text_data.py`: clean, hash sensitive fields, deduplicate, and create stable `row_id`.
-- `make_llm_batches.py`: create stratified AI-labeling samples and batch payloads.
+- `prepare_text_data.py`: clean, hash sensitive fields, mark duplicates, and create stable `row_id`.
+- `make_llm_batches.py`: create hybrid stratified AI-labeling samples and batch payloads.
 - `merge_labels.py`: validate and merge AI labels.
 - `train_text_classifier.py`: train a lightweight classifier from AI-reviewed labels and score confidence/margins.
 - `select_uncertain.py`: select uncertain, low-confidence, sarcasm-like, and random audit rows.
@@ -74,7 +74,7 @@ Recommended process:
 1. If labels are provided, rewrite them into a compact taxonomy with definitions, inclusion/exclusion rules, examples, and edge cases.
 2. If labels are not provided, create an exploratory sample and optionally run `discover_topics.py`; use clusters and keyword summaries only as evidence for drafting attitude/sentiment labels, not as final labels.
 3. Confirm the label taxonomy before large-scale labeling.
-4. Generate a stratified seed sample rather than sending every row to AI.
+4. Generate a hybrid stratified seed sample rather than sending every row to AI. Prefer platform/source and text-length coverage when available; use date/event strata only when useful and reliable.
 5. Ask AI to label the sample with `row_id,label,confidence,reason,is_sarcasm`.
 6. Merge and validate labels before training.
 7. Validate label coverage: every final report label should have enough AI-reviewed examples before training, with a practical default of at least 20-30 examples per label.
