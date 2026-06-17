@@ -16,6 +16,9 @@ def main():
     ap.add_argument("--random-per-class", type=int, default=50)
     ap.add_argument("--low-confidence-n", type=int, default=400)
     ap.add_argument("--low-margin-n", type=int, default=400)
+    ap.add_argument("--weak-label-col", default="", help="Optional weak/rule candidate label column")
+    ap.add_argument("--weak-per-class", type=int, default=80)
+    ap.add_argument("--disagreement-n", type=int, default=300)
     args = ap.parse_args()
 
     df = pd.read_csv(Path(args.merged).expanduser().resolve(), encoding="utf-8-sig")
@@ -36,6 +39,18 @@ def main():
     if args.label_col in df.columns:
         for _, sub in df.groupby(args.label_col, dropna=False):
             parts.append(sub.sample(min(len(sub), args.random_per_class), random_state=42))
+
+    if args.weak_label_col and args.weak_label_col in df.columns:
+        weak_df = df[df[args.weak_label_col].notna() & df[args.weak_label_col].astype(str).str.strip().ne("")]
+        for _, sub in weak_df.groupby(args.weak_label_col, dropna=False):
+            parts.append(sub.sample(min(len(sub), args.weak_per_class), random_state=43))
+        if args.label_col in df.columns:
+            disagreement = weak_df[
+                weak_df[args.label_col].notna()
+                & weak_df[args.weak_label_col].astype(str).ne(weak_df[args.label_col].astype(str))
+            ]
+            if len(disagreement):
+                parts.append(disagreement.sample(min(len(disagreement), args.disagreement_n), random_state=44))
 
     out = pd.concat(parts).drop_duplicates("row_id").head(args.n)
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)

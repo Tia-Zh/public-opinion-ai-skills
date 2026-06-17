@@ -46,6 +46,8 @@ Before the first LLM batch, create or update a `label_schema.md` or equivalent t
 
 If the user does not provide labels, do not default blindly to positive/neutral/negative. First inspect stratified samples and, if useful, rough clusters from a topic-discovery script. Treat clusters as evidence about common expressions, not as final sentiment labels. Draft labels that match the business question, such as `employment anxiety`, `technical optimism`, `policy demand`, `sarcasm`, `irrelevant/low-information`, or a simpler three-class taxonomy when that is enough.
 
+Do not start interpreting full classifier results until every target label has enough AI-labeled examples to be learnable. As a practical default, aim for at least 20-30 AI-labeled examples per label, and more for subtle or rare labels such as `critical/questioning`, `neutral/analytical`, or `sarcasm`. If a label has fewer examples, run targeted sampling for that label before treating a zero or near-zero prediction share as meaningful.
+
 ## Workflow
 
 When invoked by `data-processing-assistant`, expect the main skill to provide the input file path, text column, optional source/date/hash columns, proposed labels, and output folder. Return cleaned data, label quality checks, audit samples, charts, and denominator notes so the main skill can package the final workbook/report.
@@ -147,9 +149,13 @@ For each round:
    - close top-2 class probabilities;
    - sarcasm marker;
    - category-specific risk words;
+   - weak-rule candidates for underrepresented labels;
+   - examples where weak-rule label and model prediction disagree;
    - random audit sample.
 4. Send selected rows to LLM.
 5. Merge labels and repeat.
+
+Avoid class starvation. If a target label is absent or nearly absent in the AI-labeled sample, uncertainty sampling alone will not recover it because the classifier has not learned that class. Use weak rules, anchor phrases, keyword candidates, or clustering to find possible examples for that label, then ask the LLM to judge them. Treat weak rules as candidate generators, not final labels.
 
 Do not stop because a fixed number of rounds has been reached. Stop only when one of these is true:
 
@@ -158,11 +164,14 @@ Do not stop because a fixed number of rounds has been reached. Stop only when on
 - the full-data label distribution changes only slightly between rounds;
 - random audit samples show few obvious errors;
 - key categories such as employment anxiety, risk concern, sarcasm, and neutral information no longer frequently confuse with each other;
+- every target label has enough labeled examples or has been deliberately merged/removed with a documented reason;
 - the user explicitly asks for a quick baseline.
 
 If stopping after only one round, do not call the result final. Label it as an initial baseline.
 
 Treat raw Naive Bayes probabilities with caution. If `fast-nb` produces very high confidence values, do not interpret them as calibrated accuracy. Prefer `top2_margin`, disagreement samples, and random audits for uncertainty selection.
+
+If a predicted distribution drops plausible labels to zero, do not accept it silently. Check labeled-sample coverage first. A zero or near-zero category often means the active-learning sample missed that class, not that the class is absent in the data.
 
 ### 5a. Output Discipline
 
