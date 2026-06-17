@@ -1,7 +1,24 @@
 import argparse
+import json
 from pathlib import Path
 
 import pandas as pd
+
+
+def normalize_row_id(series):
+    return series.astype(str).str.strip()
+
+
+def load_label_map(path):
+    if not path:
+        return {}
+    p = Path(path).expanduser().resolve()
+    if p.suffix.lower() == ".json":
+        return json.loads(p.read_text(encoding="utf-8"))
+    df = pd.read_csv(p, encoding="utf-8-sig")
+    if not {"alias", "canonical_label"}.issubset(df.columns):
+        raise ValueError("Label map CSV must contain alias,canonical_label columns")
+    return dict(zip(df["alias"].astype(str), df["canonical_label"].astype(str)))
 
 
 def main():
@@ -10,13 +27,14 @@ def main():
     ap.add_argument("--labels", required=True)
     ap.add_argument("--output-dir", required=True)
     ap.add_argument("--valid-labels", required=True, help="Comma-separated labels")
+    ap.add_argument("--label-map", default="", help="Optional JSON or CSV alias-to-canonical label map")
     args = ap.parse_args()
 
-    out_dir = Path(args.output_dir)
+    out_dir = Path(args.output_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    prepared = pd.read_csv(args.prepared, encoding="utf-8-sig")
-    labels = pd.read_csv(args.labels, encoding="utf-8-sig")
+    prepared = pd.read_csv(Path(args.prepared).expanduser().resolve(), encoding="utf-8-sig")
+    labels = pd.read_csv(Path(args.labels).expanduser().resolve(), encoding="utf-8-sig")
     labels.columns = [str(c).strip() for c in labels.columns]
 
     required = ["row_id", "label", "confidence", "reason", "is_sarcasm"]
@@ -24,8 +42,14 @@ def main():
     if missing_cols:
         raise ValueError(f"Missing label columns: {missing_cols}")
 
-    labels["row_id"] = labels["row_id"].astype(int)
-    valid_labels = set(args.valid_labels.split(","))
+    prepared["row_id"] = normalize_row_id(prepared["row_id"])
+    labels["row_id"] = normalize_row_id(labels["row_id"])
+
+    label_map = load_label_map(args.label_map)
+    if label_map:
+        labels["label"] = labels["label"].astype(str).map(lambda value: label_map.get(value, value))
+
+    valid_labels = {label.strip() for label in args.valid_labels.split(",") if label.strip()}
     invalid = labels[~labels["label"].isin(valid_labels)]
     dupes = labels[labels["row_id"].duplicated(keep=False)]
     missing_ids = sorted(set(prepared["row_id"]) - set(labels["row_id"]))
@@ -53,4 +77,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

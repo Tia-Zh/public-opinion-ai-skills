@@ -14,11 +14,13 @@ def main():
     ap.add_argument("--random-state", type=int, default=42)
     args = ap.parse_args()
 
-    out_dir = Path(args.output_dir)
+    out_dir = Path(args.output_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    df = pd.read_csv(args.input, encoding="utf-8-sig")
+    df = pd.read_csv(Path(args.input).expanduser().resolve(), encoding="utf-8-sig")
     strata_cols = [c for c in args.strata_cols.split(",") if c in df.columns]
+    for col in strata_cols:
+        df[col] = df[col].astype(str).fillna("")
 
     if args.sample_n and args.sample_n < len(df) and strata_cols:
         parts = []
@@ -41,7 +43,7 @@ def main():
     for batch_id, start in enumerate(range(0, len(sample), args.batch_size), start=1):
         sub = sample.iloc[start:start + args.batch_size]
         text = "\n".join(
-            f"row_id={int(r.row_id)} | source={getattr(r, 'source', '')} | date={getattr(r, 'date', '')} | text={str(r.clean_text).replace(chr(10), ' ')}"
+            f"row_id={str(r.row_id).strip()} | source={getattr(r, 'source', '')} | date={getattr(r, 'date', '')} | text={str(r.clean_text).replace(chr(10), ' ')}"
             for r in sub.itertuples()
         )
         rows.append({"batch_id": batch_id, "n": len(sub), "prompt_payload": text})
@@ -51,4 +53,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

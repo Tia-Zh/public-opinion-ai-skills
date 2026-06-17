@@ -18,8 +18,8 @@ Core method:
 5. Train, calibrate, or rule-calibrate an automatic classifier.
 6. Run the classifier on all data only after at least one AI-labeled seed batch exists.
 7. Select uncertain/boundary/sarcasm-like samples for another LLM labeling round.
-8. Repeat 2-3 active-learning rounds.
-9. Run final full-data classification.
+8. Repeat active-learning rounds until the quality checks converge or the user accepts a quick baseline.
+9. Run final full-data classification only after convergence criteria are met or clearly disclose why the run stopped early.
 10. Audit low-confidence, uncertain, and random class samples.
 11. Generate report-ready tables and charts.
 
@@ -34,12 +34,15 @@ Avoid saying "the LLM manually labeled every row" unless every row was actually 
 For every task, define:
 
 - final labels;
+- canonical label names and allowed aliases;
 - exclusion labels such as `irrelevant/low-information`;
 - `uncertain` for ambiguous or context-poor cases;
 - concise criteria for each label;
 - examples and counterexamples.
 
 Do not begin with keyword matching. Begin with label definitions and edge cases.
+
+Before the first LLM batch, create or update a `label_schema.md` or equivalent table in the output directory. Use one language for canonical labels throughout the run. If a later LLM batch returns aliases or another language, normalize labels before training the classifier.
 
 If the user does not provide labels, do not default blindly to positive/neutral/negative. First inspect stratified samples and, if useful, rough clusters from a topic-discovery script. Treat clusters as evidence about common expressions, not as final sentiment labels. Draft labels that match the business question, such as `employment anxiety`, `technical optimism`, `policy demand`, `sarcasm`, `irrelevant/low-information`, or a simpler three-class taxonomy when that is enough.
 
@@ -133,7 +136,7 @@ Use `scripts/train_text_classifier.py` directly. It supports:
 python -m pip install scikit-learn
 ```
 
-If installation is not allowed or the Python version is unsupported, use `--backend fast-nb` and disclose it in the quality note. For large files, keep `--progress-every 10000` enabled so the user can see that scoring is still running.
+If installation is not allowed, the Python version is unsupported, or the sklearn backend is too slow in the current environment, use `--backend fast-nb` and disclose it in the quality note. For large files, keep `--progress-every 10000` enabled so the user can see that scoring is still running. If `fast-nb` is still slow, lower `--max-chars` to 200-400 and record that choice in the quality note.
 
 For each round:
 
@@ -148,13 +151,18 @@ For each round:
 4. Send selected rows to LLM.
 5. Merge labels and repeat.
 
-Stop early only when one of these is true:
+Do not stop because a fixed number of rounds has been reached. Stop only when one of these is true:
 
-- the remaining `needs_review` share is small enough for the task;
-- a manual/AI audit sample shows stable labels;
+- the remaining low-confidence/boundary share is small enough for the task;
+- a new AI review batch largely agrees with the classifier's predictions;
+- the full-data label distribution changes only slightly between rounds;
+- random audit samples show few obvious errors;
+- key categories such as employment anxiety, risk concern, sarcasm, and neutral information no longer frequently confuse with each other;
 - the user explicitly asks for a quick baseline.
 
 If stopping after only one round, do not call the result final. Label it as an initial baseline.
+
+Treat raw Naive Bayes probabilities with caution. If `fast-nb` produces very high confidence values, do not interpret them as calibrated accuracy. Prefer `top2_margin`, disagreement samples, and random audits for uncertainty selection.
 
 ### 5a. Output Discipline
 
@@ -165,6 +173,16 @@ During active-learning iterations, keep outputs lean:
 - Write one summary Excel at the end of the current run with metrics, distributions, AI-labeled samples, low-confidence samples, random audit samples, and a small preview.
 - For datasets above 50,000 rows, keep full predictions as CSV unless the user explicitly asks for full Excel.
 - Do not present a one-round result as the main deliverable if a second-round review is still pending. First show the next review batch and quality status.
+
+### 5c. Windows And File Handling Guardrails
+
+On Windows or mixed Git Bash/PowerShell environments:
+
+- Prefer saved `.py` scripts or bundled scripts over shell heredoc snippets such as `python <<EOF`, because some terminals lose stdout/stderr.
+- Use absolute paths from `Path(...).expanduser().resolve()`; avoid passing `~` directly to Windows Python.
+- Do not copy skill scripts to data folders unless path execution truly fails. Fix the path first.
+- After CSV round-trips, explicitly normalize important grouping columns such as year/date/source to string before filtering or grouping.
+- For full predictions above 50,000 rows, write CSV. Put only summaries and samples in Excel.
 
 ### 5b. Optional Reference-Label Evaluation
 
@@ -222,3 +240,5 @@ Read `references/llm_labeling_prompt.md` when preparing model prompts.
 Read `references/evaluation.md` when comparing against existing labels or writing validation notes.
 
 Read `references/privacy.md` when deciding what to hash, mask, or exclude before AI labeling.
+
+Use `references/label_schema_template.md` when setting up canonical labels and aliases for a new task.

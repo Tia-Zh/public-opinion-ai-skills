@@ -8,7 +8,16 @@ from pathlib import Path
 import pandas as pd
 
 
-def try_sklearn_backend(train_df, df, text_col, label_col, confidence_threshold, margin_threshold):
+def try_sklearn_backend(
+    train_df,
+    df,
+    text_col,
+    label_col,
+    confidence_threshold,
+    margin_threshold,
+    sklearn_max_features,
+    progress_every,
+):
     try:
         from sklearn.feature_extraction.text import TfidfVectorizer
         from sklearn.linear_model import LogisticRegression
@@ -18,24 +27,31 @@ def try_sklearn_backend(train_df, df, text_col, label_col, confidence_threshold,
 
     model = Pipeline(
         [
-            ("tfidf", TfidfVectorizer(analyzer="char", ngram_range=(1, 2), min_df=2, max_features=80000)),
+            ("tfidf", TfidfVectorizer(analyzer="char", ngram_range=(1, 2), min_df=1, max_features=sklearn_max_features)),
             ("clf", LogisticRegression(max_iter=1000, class_weight="balanced")),
         ]
     )
     model.fit(train_df[text_col].astype(str), train_df[label_col].astype(str))
     labels = list(model.classes_)
-    probabilities = model.predict_proba(df[text_col].astype(str))
 
     predicted = []
     confidence = []
     margin = []
-    for row in probabilities:
-        order = row.argsort()[::-1]
-        top = order[0]
-        second = order[1] if len(order) > 1 else top
-        predicted.append(labels[top])
-        confidence.append(float(row[top]))
-        margin.append(float(row[top] - row[second]) if len(order) > 1 else float(row[top]))
+    texts = df[text_col].astype(str)
+    total = len(texts)
+    batch_size = progress_every or total
+    for start in range(0, total, batch_size):
+        end = min(start + batch_size, total)
+        probabilities = model.predict_proba(texts.iloc[start:end])
+        for row in probabilities:
+            order = row.argsort()[::-1]
+            top = order[0]
+            second = order[1] if len(order) > 1 else top
+            predicted.append(labels[top])
+            confidence.append(float(row[top]))
+            margin.append(float(row[top] - row[second]) if len(order) > 1 else float(row[top]))
+        if progress_every:
+            print(f"scored {end}/{total}", file=sys.stderr, flush=True)
 
     out = df.copy()
     out["predicted_label"] = predicted
@@ -142,6 +158,7 @@ def main():
     ap.add_argument("--backend", choices=["auto", "sklearn", "fast-nb"], default="auto")
     ap.add_argument("--max-vocab-per-label", type=int, default=3500)
     ap.add_argument("--max-chars", type=int, default=600)
+    ap.add_argument("--sklearn-max-features", type=int, default=60000)
     ap.add_argument("--progress-every", type=int, default=10000)
     args = ap.parse_args()
 
@@ -164,6 +181,8 @@ def main():
                 args.label_col,
                 args.confidence_threshold,
                 args.margin_threshold,
+                args.sklearn_max_features,
+                args.progress_every,
             )
         except RuntimeError:
             if args.backend == "sklearn":
