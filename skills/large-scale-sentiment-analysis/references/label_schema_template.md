@@ -11,7 +11,7 @@ Create a task-specific copy of this table before the first LLM labeling batch.
 | 理性中立 | neutral/analytical; 中性信息 | Factual, analytical, informational, or unclear attitude. | A report says AI affects hiring. | Emotional worry or support. |
 | 调侃讽刺 | sarcasm; 调侃讽刺 | Sarcasm, jokes, memes, or ironic comments where literal keywords may mislead. | Sure, AI will totally save us. | Serious criticism without irony. |
 | 无关/低信息 | irrelevant/low-information; 无关低信息 | Unrelated, too short, pure prompt, pure emoji, spam, or insufficient context. | Summarize in Spanish. | Short but clear job-loss worry. |
-| 拿不准 | uncertain; 混合不确定 | Ambiguous, mixed, context-poor, or needs human/AI review. | Both opportunity and job-loss concern appear. | Dominant attitude is clear. |
+| 拿不准 | uncertain; 混合不确定 | Use as a final label only for genuinely ambiguous, context-poor, too-short, or mixed texts where no dominant attitude can be assigned. If "uncertain" only means review needed, keep it as a review status instead of a classifier label. | Too short to judge; conflicting cues without dominance; missing context. | Long text with clear support, anxiety, criticism, or neutral reporting. |
 
 Rules:
 

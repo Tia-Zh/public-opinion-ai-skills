@@ -44,11 +44,19 @@ Do not begin with keyword matching. Begin with label definitions and edge cases.
 
 Before the first LLM batch, create or update a `label_schema.md` or equivalent table in the output directory. Use one language for canonical labels throughout the run. If a later LLM batch returns aliases or another language, normalize labels before training the classifier.
 
+Decide what `uncertain` means before training:
+
+- If `uncertain` is a final report bucket for context-poor, too-short, genuinely ambiguous, or mixed texts, include enough confirmed examples and define it in the label schema.
+- If `uncertain` only means "the model is unsure and this row needs review", keep it as a review status derived from confidence, margin, disagreement, or audit results, not as an ordinary classifier label.
+- Do not use vague words such as "maybe", "possibly", or "not sure" alone to find uncertain samples; long texts can contain those words while still having a clear stance. Prefer task-specific strategies such as very short context-poor texts, conflicting cues, missing context, or weak-rule/model disagreement.
+
 If the user does not provide labels, do not default blindly to positive/neutral/negative. First inspect stratified samples and, if useful, rough clusters from a topic-discovery script. Treat clusters as evidence about common expressions, not as final sentiment labels. Draft labels that match the business question, such as `employment anxiety`, `technical optimism`, `policy demand`, `sarcasm`, `irrelevant/low-information`, or a simpler three-class taxonomy when that is enough.
 
-Do not start interpreting full classifier results until every target label has enough AI-labeled examples to be learnable. As a practical default, aim for at least 20-30 AI-labeled examples per label, and more for subtle or rare labels such as `critical/questioning`, `neutral/analytical`, or `sarcasm`. If a label has fewer examples, run targeted sampling for that label before treating a zero or near-zero prediction share as meaningful.
+Do not start interpreting full classifier results until every target label has enough AI-labeled examples to be learnable. As a practical default, aim for at least 20-30 AI-labeled examples per final label, and more for subtle or rare labels such as `critical/questioning`, `neutral/analytical`, or `sarcasm`. If a label has fewer examples, run targeted sampling for that label before treating a zero or near-zero prediction share as meaningful. Apply this rule to `uncertain` only when it is intentionally used as a final label, not when it is only a review flag.
 
 Use targeted supplementation when any plausible label is missing or underrepresented. Targeted supplementation means: use weak rules, anchor phrases, keyword candidates, or cluster examples to find likely examples of an underrepresented label; send those candidates to the LLM or a human reviewer; then add only the confirmed labels to the training pool. Do not add weak-rule labels directly as truth.
+
+Design targeted supplementation per label. Different labels need different candidate strategies: critical/questioning may use words such as "excuse", "hype", "cover for layoffs", or "actually"; neutral/analytical may use balanced framing and report-like language; uncertain may use short context-poor texts, conflicting cues, or missing context rather than generic uncertainty words.
 
 ## Workflow
 
