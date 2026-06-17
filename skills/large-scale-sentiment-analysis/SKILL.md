@@ -16,7 +16,7 @@ Core method:
 3. Define a small, stable label taxonomy with edge cases.
 4. Ask an LLM to label a stratified seed sample.
 5. Train, calibrate, or rule-calibrate an automatic classifier.
-6. Run the classifier on all data.
+6. Run the classifier on all data only after at least one AI-labeled seed batch exists.
 7. Select uncertain/boundary/sarcasm-like samples for another LLM labeling round.
 8. Repeat 2-3 active-learning rounds.
 9. Run final full-data classification.
@@ -107,7 +107,21 @@ Never proceed to charts before row_id coverage is checked.
 
 ### 5. Classifier Or Rule Calibration
 
-Train or calibrate a lightweight classifier from LLM-labeled samples and use probabilities as uncertainty. The bundled `scripts/train_text_classifier.py` provides a dependency-light character n-gram Naive Bayes baseline. If a stronger local stack such as `scikit-learn` is available, it can be patched in for the concrete task. If not, use the bundled baseline or a rule-enhanced classifier, but document the method honestly.
+Train or calibrate a classifier from LLM-labeled samples and use probabilities as uncertainty. Do not replace this step with pure keyword classification unless the classifier cannot run and the output is clearly marked as a weak baseline.
+
+Use `scripts/train_text_classifier.py` directly. It supports:
+
+- `--backend auto` (default): use `scikit-learn` logistic regression when available; otherwise fall back to fast character n-gram Naive Bayes.
+- `--backend sklearn`: require `scikit-learn`; fail if unavailable.
+- `--backend fast-nb`: use the dependency-light fallback.
+
+`scikit-learn` is the Python package name; it is imported as `sklearn`. If the environment allows installing dependencies, prefer:
+
+```powershell
+python -m pip install scikit-learn
+```
+
+If installation is not allowed or the Python version is unsupported, use `--backend fast-nb` and disclose it in the quality note. For large files, keep `--progress-every 10000` enabled so the user can see that scoring is still running.
 
 For each round:
 
@@ -121,6 +135,24 @@ For each round:
    - random audit sample.
 4. Send selected rows to LLM.
 5. Merge labels and repeat.
+
+Stop early only when one of these is true:
+
+- the remaining `needs_review` share is small enough for the task;
+- a manual/AI audit sample shows stable labels;
+- the user explicitly asks for a quick baseline.
+
+If stopping after only one round, do not call the result final. Label it as an initial baseline.
+
+### 5a. Output Discipline
+
+During active-learning iterations, keep outputs lean:
+
+- Always save CSV artifacts for traceability: prepared data, AI labels, scored predictions, uncertain batch, and metrics.
+- Do not write a full-row Excel workbook after every intermediate round.
+- Write one summary Excel at the end of the current run with metrics, distributions, AI-labeled samples, low-confidence samples, random audit samples, and a small preview.
+- For datasets above 50,000 rows, keep full predictions as CSV unless the user explicitly asks for full Excel.
+- Do not present a one-round result as the main deliverable if a second-round review is still pending. First show the next review batch and quality status.
 
 ### 5b. Optional Reference-Label Evaluation
 
