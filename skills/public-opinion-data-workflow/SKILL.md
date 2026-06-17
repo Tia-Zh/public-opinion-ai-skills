@@ -52,6 +52,7 @@ Core requirements:
 - preserve source sheet and row number;
 - do not remove comments only because they are short; short attitude texts such as `[赞]`, `[强]`, `支持`, `赞成`, `点赞`, `反对`, or short complaint phrases may be valid public-opinion signals;
 - do not collapse repeated comments silently; keep a volume view and, when useful, a deduplicated expression view with duplicate counts;
+- do not run exact dedupe or prefix dedupe before sentiment/stance classification unless the user explicitly asks for a deduplicated expression view or spam cleanup;
 - use understandable output column names;
 - create charts with readable titles, labels, and fonts.
 - do not present k-means clusters as final sentiment labels; use them for expression exploration, sampling, or draft attitude/theme naming.

@@ -16,7 +16,7 @@ Use deterministic code for tasks that should be exact:
 
 - row counts
 - filtering by exact keyword/date/category rules
-- exact dedupe
+- exact dedupe when the user explicitly asks for a deduplicated view; do not treat dedupe as the default for sentiment share analysis
 - date parsing
 - arithmetic summaries
 

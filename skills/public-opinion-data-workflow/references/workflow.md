@@ -17,9 +17,9 @@ For multi-sheet workbooks, do not flatten everything immediately. Inspect each s
 
 Clarify or infer:
 
-- main content columns: the columns being cleaned, filtered, deduplicated, labeled, or analyzed
+- main content columns: the columns being cleaned, filtered, optionally deduplicated, labeled, or analyzed
 - keep columns: metadata columns to retain in the final output
-- key columns: columns that uniquely identify a record or should be used for dedupe
+- key columns: columns that uniquely identify a record or may be used for optional dedupe
 - time columns: columns used for date filtering or trend charts
 - grouping columns: category, platform, department, region, author, source, product, status, or similar fields
 
@@ -34,12 +34,13 @@ Typical order:
 3. Clean text or normalize values.
 4. Remove empty or invalid rows.
 5. Apply date/category/keyword filters.
-6. Deduplicate.
-7. Add labels or derived columns.
-8. Summarize and chart.
-9. Export data, removed rows, charts, and a step log.
+6. Mark duplicates with hash/count fields.
+7. Deduplicate only when the user asks for a unique-expression view, spam cleanup, or a task where duplicates would corrupt the result.
+8. Add labels or derived columns.
+9. Summarize and chart.
+10. Export data, removed rows, charts, and a step log.
 
-The order can change. For example, sometimes dedupe should happen before keyword filtering; explain the choice if it affects counts.
+The order can change. For sentiment, stance, policy feedback, or public-opinion share analysis, do not default to dedupe: repeated short comments are part of the observed volume. If dedupe is needed, produce a separate deduplicated view and keep `duplicate_count` so the volume can be restored.
 
 ## 4. Preview and audit
 
@@ -58,7 +59,7 @@ Preserve source sheet and source row whenever records come from Excel sheets. Th
 Prefer Excel output for office users:
 
 - `处理结果`: final data
-- `删除记录`: rows removed by filters or dedupe, when applicable
+- `删除记录`: rows removed by filters or optional dedupe, when applicable
 - `处理日志`: step names, before/after counts, parameters
 - `字段说明`: original column names, inferred roles, renamed output columns
 
