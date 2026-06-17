@@ -33,30 +33,28 @@ Avoid saying "the LLM manually labeled every row" unless every row was actually 
 
 For every task, define:
 
-- final labels;
+- task-specific label roles, not just label names;
+- final analysis labels that will appear in the report distribution;
+- exclusion labels such as irrelevant, spam, or low-information when they are part of the denominator policy;
+- review statuses such as needs-review, ambiguous, conflict, or model-uncertain when they should trigger review rather than become ordinary classifier labels;
 - canonical label names and allowed aliases;
-- exclusion labels such as `irrelevant/low-information`;
-- `uncertain` for ambiguous or context-poor cases;
-- concise criteria for each label;
-- examples and counterexamples.
+- concise criteria, examples, and counterexamples for each final or exclusion label.
 
 Do not begin with keyword matching. Begin with label definitions and edge cases.
 
 Before the first LLM batch, create or update a `label_schema.md` or equivalent table in the output directory. Use one language for canonical labels throughout the run. If a later LLM batch returns aliases or another language, normalize labels before training the classifier.
 
-Decide what `uncertain` means before training:
+At schema time, decide which labels are report labels and which are review statuses. Do not hard-code a label named `uncertain`; different tasks may use names such as `ambiguous`, `needs_review`, `mixed`, `insufficient_context`, `irrelevant`, or local Chinese equivalents. If a category is a final report bucket, include enough confirmed examples and define it in the schema. If it only means "the model is unsure and this row needs review", keep it as a review status derived from confidence, margin, disagreement, short/context-poor text, or audit results, not as an ordinary classifier label.
 
-- If `uncertain` is a final report bucket for context-poor, too-short, genuinely ambiguous, or mixed texts, include enough confirmed examples and define it in the label schema.
-- If `uncertain` only means "the model is unsure and this row needs review", keep it as a review status derived from confidence, margin, disagreement, or audit results, not as an ordinary classifier label.
-- Do not use vague words such as "maybe", "possibly", or "not sure" alone to find uncertain samples; long texts can contain those words while still having a clear stance. Prefer task-specific strategies such as very short context-poor texts, conflicting cues, missing context, or weak-rule/model disagreement.
+Do not use vague words such as "maybe", "possibly", or "not sure" alone to find ambiguity/review samples; long texts can contain those words while still having a clear stance. Prefer task-specific strategies such as very short context-poor texts, conflicting cues, missing context, weak-rule/model disagreement, or label-specific anchors.
 
 If the user does not provide labels, do not default blindly to positive/neutral/negative. First inspect stratified samples and, if useful, rough clusters from a topic-discovery script. Treat clusters as evidence about common expressions, not as final sentiment labels. Draft labels that match the business question, such as `employment anxiety`, `technical optimism`, `policy demand`, `sarcasm`, `irrelevant/low-information`, or a simpler three-class taxonomy when that is enough.
 
-Do not start interpreting full classifier results until every target label has enough AI-labeled examples to be learnable. As a practical default, aim for at least 20-30 AI-labeled examples per final label, and more for subtle or rare labels such as `critical/questioning`, `neutral/analytical`, or `sarcasm`. If a label has fewer examples, run targeted sampling for that label before treating a zero or near-zero prediction share as meaningful. Apply this rule to `uncertain` only when it is intentionally used as a final label, not when it is only a review flag.
+Do not start interpreting full classifier results until every target report label has enough AI-labeled examples to be learnable. As a practical default, aim for at least 20-30 AI-labeled examples per final label, and more for subtle or rare labels such as criticism, neutral analysis, or sarcasm. If a label has fewer examples, run targeted sampling for that label before treating a zero or near-zero prediction share as meaningful. Apply this rule to ambiguity/insufficient-context categories only when they are intentionally used as final report labels, not when they are only review flags.
 
 Use targeted supplementation when any plausible label is missing or underrepresented. Targeted supplementation means: use weak rules, anchor phrases, keyword candidates, or cluster examples to find likely examples of an underrepresented label; send those candidates to the LLM or a human reviewer; then add only the confirmed labels to the training pool. Do not add weak-rule labels directly as truth.
 
-Design targeted supplementation per label. Different labels need different candidate strategies: critical/questioning may use words such as "excuse", "hype", "cover for layoffs", or "actually"; neutral/analytical may use balanced framing and report-like language; uncertain may use short context-poor texts, conflicting cues, or missing context rather than generic uncertainty words.
+Design targeted supplementation per label. Different labels need different candidate strategies: criticism may use words such as "excuse", "hype", "cover for layoffs", or "actually"; neutral analysis may use balanced framing and report-like language; ambiguity/insufficient-context buckets may use short context-poor texts, conflicting cues, or missing context rather than generic uncertainty words.
 
 ## Workflow
 
@@ -90,17 +88,17 @@ Use `scripts/make_llm_batches.py` to create stratified or full batches. Prefer s
 
 For active learning rounds, batch only uncertain/boundary cases.
 
-### 3. LLM Labeling
+### 3. AI Semantic Labeling
 
-Give the LLM:
+Use the current AI agent's semantic judgment, or an available LLM/API if the environment provides one, to label the batch according to the schema. Do not write a keyword-rule script and treat its output as AI semantic labeling.
+
+Use the prompt template in `references/llm_labeling_prompt.md` when you need a separate prompt or external model call. The labeling task must include:
 
 - label taxonomy;
 - output schema;
 - input batch file;
 - instruction to preserve `row_id`;
 - instruction to return CSV/JSON only.
-
-Use the prompt template in `references/llm_labeling_prompt.md`.
 
 Required output columns:
 
@@ -173,7 +171,7 @@ For targeted supplementation, use `scripts/make_targeted_samples.py` when a weak
 python scripts/make_targeted_samples.py --input prepared_texts.csv --output-dir targeted_round --text-col clean_text --target-labels "质疑批评,理性中立" --keywords targeted_keywords.csv --per-label 100
 ```
 
-The output `targeted_label_candidates.csv` is a review batch, not final labels. Label it with the LLM prompt schema, merge confirmed labels, then retrain.
+The keyword CSV may include optional `min_chars` and `max_chars` columns for label-specific strategies, such as short context-poor candidates. The output `targeted_label_candidates.csv` is a review batch, not final labels. Label it with the AI semantic labeling schema, merge confirmed labels, then retrain.
 
 Do not stop because a fixed number of rounds has been reached. Stop only when one of these is true:
 
@@ -190,6 +188,8 @@ If stopping after only one round, do not call the result final. Label it as an i
 Treat raw Naive Bayes probabilities with caution. If `fast-nb` produces very high confidence values, do not interpret them as calibrated accuracy. Prefer `top2_margin`, disagreement samples, and random audits for uncertainty selection.
 
 If a predicted distribution drops plausible labels to zero, do not accept it silently. Check labeled-sample coverage first. A zero or near-zero category often means the active-learning sample missed that class, not that the class is absent in the data.
+
+If an exclusion or low-information bucket becomes unusually large, especially with low confidence, do not accept it silently. Audit that bucket before reporting. A high low-information share may mean the classifier is dumping hard-to-classify but relevant texts into the exclusion bucket. Sample low-confidence exclusion predictions and relevant-looking exclusion predictions, correct labels, and retrain if many are actually relevant.
 
 ### 5a. Output Discipline
 

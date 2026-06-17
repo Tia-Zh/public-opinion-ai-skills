@@ -17,13 +17,33 @@ def load_keywords(path):
         raise ValueError("Keyword CSV must contain label,keyword columns")
     result = {}
     for label, group in df.groupby("label", dropna=False):
-        result[str(label)] = [str(value) for value in group["keyword"].dropna()]
+        result[str(label)] = {
+            "keywords": [str(value) for value in group["keyword"].dropna()],
+            "min_chars": pd.to_numeric(group.get("min_chars"), errors="coerce").dropna().min()
+            if "min_chars" in group
+            else None,
+            "max_chars": pd.to_numeric(group.get("max_chars"), errors="coerce").dropna().max()
+            if "max_chars" in group
+            else None,
+        }
     return result
 
 
 def keyword_hits(text, keywords):
     value = str(text or "").lower()
     return [kw for kw in keywords if str(kw).lower() in value]
+
+
+def normalize_keyword_config(config):
+    if isinstance(config, list):
+        return {"keywords": config, "min_chars": None, "max_chars": None}
+    if isinstance(config, dict):
+        return {
+            "keywords": config.get("keywords", []),
+            "min_chars": config.get("min_chars"),
+            "max_chars": config.get("max_chars"),
+        }
+    return {"keywords": [], "min_chars": None, "max_chars": None}
 
 
 def main():
@@ -36,6 +56,8 @@ def main():
     parser.add_argument("--keywords", default="", help="Optional JSON or CSV keyword map for targeted labels")
     parser.add_argument("--target-labels", required=True, help="Comma-separated target labels to supplement")
     parser.add_argument("--per-label", type=int, default=100)
+    parser.add_argument("--min-chars", type=int, default=0, help="Global minimum text length filter")
+    parser.add_argument("--max-chars", type=int, default=0, help="Global maximum text length filter; 0 disables")
     parser.add_argument("--random-state", type=int, default=42)
     args = parser.parse_args()
 
@@ -49,6 +71,12 @@ def main():
     if args.row_id_col not in df.columns:
         raise ValueError(f"Missing row_id column: {args.row_id_col}")
 
+    df["_target_text_len"] = df[args.text_col].astype(str).str.len()
+    if args.min_chars:
+        df = df[df["_target_text_len"] >= args.min_chars]
+    if args.max_chars:
+        df = df[df["_target_text_len"] <= args.max_chars]
+
     target_labels = [label.strip() for label in args.target_labels.split(",") if label.strip()]
     keyword_map = load_keywords(args.keywords)
 
@@ -59,9 +87,15 @@ def main():
         if args.weak_label_col and args.weak_label_col in df.columns:
             candidates.append(df[df[args.weak_label_col].astype(str).eq(label)])
         if label in keyword_map:
-            kws = keyword_map[label]
-            hit_mask = df[args.text_col].astype(str).map(lambda value: bool(keyword_hits(value, kws)))
-            hit_df = df[hit_mask].copy()
+            cfg = normalize_keyword_config(keyword_map[label])
+            kws = cfg["keywords"]
+            keyword_source = df
+            if cfg["min_chars"] is not None:
+                keyword_source = keyword_source[keyword_source["_target_text_len"] >= int(cfg["min_chars"])]
+            if cfg["max_chars"] is not None:
+                keyword_source = keyword_source[keyword_source["_target_text_len"] <= int(cfg["max_chars"])]
+            hit_mask = keyword_source[args.text_col].astype(str).map(lambda value: bool(keyword_hits(value, kws)))
+            hit_df = keyword_source[hit_mask].copy()
             hit_df["target_keyword_hits"] = hit_df[args.text_col].map(lambda value: "|".join(keyword_hits(value, kws)[:8]))
             candidates.append(hit_df)
 
@@ -74,6 +108,7 @@ def main():
         sampled = sampled.copy()
         sampled["target_label_candidate"] = label
         sampled["target_sampling_reason"] = "weak_rule_or_keyword_candidate"
+        sampled["target_text_len"] = sampled["_target_text_len"] if "_target_text_len" in sampled.columns else ""
         parts.append(sampled)
         summary.append({"target_label": label, "candidate_rows": len(label_df), "sampled_rows": len(sampled)})
 
@@ -84,6 +119,7 @@ def main():
         "target_label_candidate",
         "target_sampling_reason",
         "target_keyword_hits",
+        "target_text_len",
     ]
     keep_cols = [col for col in keep_cols if col in out.columns]
     out[keep_cols].to_csv(out_dir / "targeted_label_candidates.csv", index=False, encoding="utf-8-sig")

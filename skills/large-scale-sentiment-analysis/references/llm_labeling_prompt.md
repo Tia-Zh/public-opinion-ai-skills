@@ -1,17 +1,15 @@
-# LLM Labeling Prompt Template
+# AI Semantic Labeling Prompt Template
 
-You are a Chinese public-opinion coding assistant. Classify each text according to the taxonomy below.
+You are a Chinese public-opinion coding assistant. Classify each text according to the task-specific schema below. Use semantic judgment; do not classify by isolated keywords only.
 
 ## Labels
 
-Replace these with task-specific labels:
+Replace these examples with task-specific labels and roles:
 
-1. positive/supportive: approval, pride, optimism, expectation, support.
-2. anxiety/concern: concern about employment, safety, social effects, uncertainty, loss.
-3. critical/questioning: criticism, skepticism, hype/bubble concerns, route or decision criticism.
-4. neutral/analytical: factual statement, cost/industry/technical analysis, objective question.
-5. irrelevant/low-information: unrelated, greetings, pure emoji, stock chatter, insufficient content.
-6. uncertain: ambiguous, context-poor, possible sarcasm but unclear.
+1. final_label_a: task-specific definition.
+2. final_label_b: task-specific definition.
+3. exclusion_label: unrelated, spam, too little information, or outside denominator if the task defines one.
+4. review_status labels are not ordinary classifier labels unless the schema explicitly says they are final report buckets.
 
 ## Rules
 
@@ -19,7 +17,8 @@ Replace these with task-specific labels:
 - Do not classify by isolated keywords only.
 - Consider semantics, tone, negation, sarcasm, and context.
 - If multiple attitudes appear, choose the dominant label.
-- If unclear, use `uncertain`.
+- If the schema defines an ambiguity/insufficient-context final label, use it only when no dominant label can be assigned.
+- If ambiguity is only a review status, choose the best label and set a low confidence/reason rather than inventing a classifier label.
 - Return only CSV or JSON with the required schema.
 
 ## Required Output Schema
