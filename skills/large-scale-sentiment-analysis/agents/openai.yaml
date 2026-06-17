@@ -1,4 +1,4 @@
 interface:
   display_name: "大规模情感分析"
-  short_description: "用于大样本中文评论的抽样 AI 标注、分类器迁移、低置信度复核和质量摘要。"
-  default_prompt: "请使用 $large-scale-sentiment-analysis 处理这个中文评论数据集：先清洗脱敏并抽样 AI 标注，再迁移分类到全量数据，抽取低置信度、边界、反讽和随机样本复核，最后输出统计、图表和质量摘要。"
+  short_description: "用于大样本中文评论的标签口径建立、抽样 AI 标注、分类器迁移、低置信度复核和质量摘要。"
+  default_prompt: "请使用 $large-scale-sentiment-analysis 处理这个中文评论数据集：先清洗脱敏；如果标签体系未定，请先抽样探索并建立情感/态度标签口径；再抽样 AI 标注、迁移分类到全量数据，抽取低置信度、边界、反讽和随机样本复核，最后输出统计、图表和质量摘要。"

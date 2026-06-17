@@ -1,4 +1,4 @@
 interface:
   display_name: "舆情数据处理与情感分析"
-  short_description: "端到端处理舆情表格数据，并在大样本中文评论场景中执行抽样 AI 标注、分类器迁移和复核。"
-  default_prompt: "请使用 $public-opinion-data-workflow 检查这个舆情数据集，清洗、去重、筛选并判断应走普通数据处理还是专项情感分析流程，最后导出可复核结果。"
+  short_description: "端到端处理中文舆情表格数据，支持脱敏、清洗、筛选、建标、抽样 AI 标注、分类器迁移和复核。"
+  default_prompt: "请使用 $public-opinion-data-workflow 检查这个舆情数据集：先识别字段并做隐私/脱敏处理，再清洗、去重、筛选；如果是大规模评论情感或态度分析，请先确认或建立标签口径，再抽样 AI 标注、分类迁移、复核并导出质量摘要。"

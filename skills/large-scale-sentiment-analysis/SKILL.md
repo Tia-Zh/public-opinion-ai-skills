@@ -12,15 +12,16 @@ This skill can be called directly, or as the specialist workflow from `data-proc
 Core method:
 
 1. Clean, de-identify, and deduplicate text.
-2. Define a small, stable label taxonomy.
-3. Ask an LLM to label a stratified seed sample.
-4. Train, calibrate, or rule-calibrate an automatic classifier.
-5. Run the classifier on all data.
-6. Select uncertain/boundary/sarcasm-like samples for another LLM labeling round.
-7. Repeat 2-3 active-learning rounds.
-8. Run final full-data classification.
-9. Audit low-confidence, uncertain, and random class samples.
-10. Generate report-ready tables and charts.
+2. If labels are missing, explore samples and expression clusters to draft a task-specific sentiment/stance taxonomy.
+3. Define a small, stable label taxonomy with edge cases.
+4. Ask an LLM to label a stratified seed sample.
+5. Train, calibrate, or rule-calibrate an automatic classifier.
+6. Run the classifier on all data.
+7. Select uncertain/boundary/sarcasm-like samples for another LLM labeling round.
+8. Repeat 2-3 active-learning rounds.
+9. Run final full-data classification.
+10. Audit low-confidence, uncertain, and random class samples.
+11. Generate report-ready tables and charts.
 
 Recommended wording:
 
@@ -39,6 +40,8 @@ For every task, define:
 - examples and counterexamples.
 
 Do not begin with keyword matching. Begin with label definitions and edge cases.
+
+If the user does not provide labels, do not default blindly to positive/neutral/negative. First inspect stratified samples and, if useful, rough clusters from a topic-discovery script. Treat clusters as evidence about common expressions, not as final sentiment labels. Draft labels that match the business question, such as `employment anxiety`, `technical optimism`, `policy demand`, `sarcasm`, `irrelevant/low-information`, or a simpler three-class taxonomy when that is enough.
 
 ## Workflow
 
@@ -119,6 +122,10 @@ For each round:
 4. Send selected rows to LLM.
 5. Merge labels and repeat.
 
+### 5b. Optional Reference-Label Evaluation
+
+If the dataset already has a historical or manual label column, use `scripts/compare_labels.py` after generating predictions. Treat the reference column as a test aid, not automatic truth. Report agreement rate, confusion matrix, and disagreement samples. Skip this step when no reference label exists.
+
 ### 6. Audit
 
 Always generate:
@@ -160,9 +167,14 @@ Bundled scripts are starting points. Patch column names and label lists for the 
 - `scripts/train_text_classifier.py`: train a dependency-light baseline classifier and score confidence/margins.
 - `scripts/select_uncertain.py`: select low-confidence and boundary samples.
 - `scripts/build_summary_charts.py`: create summary tables and monthly charts.
+- `scripts/compare_labels.py`: compare predictions with an existing reference label column when available.
 
 ## Method Notes
 
 Read `references/method_note.md` when writing the methodology section.
 
 Read `references/llm_labeling_prompt.md` when preparing model prompts.
+
+Read `references/evaluation.md` when comparing against existing labels or writing validation notes.
+
+Read `references/privacy.md` when deciding what to hash, mask, or exclude before AI labeling.

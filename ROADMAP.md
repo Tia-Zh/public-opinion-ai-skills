@@ -1,8 +1,28 @@
 # Roadmap
 
-- Add more real-world demo datasets after removing sensitive information.
-- Add regression tests for the data-processing and sentiment scripts.
-- Add command wrappers for common workflows.
-- Add model/API configuration examples for company-approved LLM endpoints.
-- Add more robust clustering metrics and optional embedding-based topic discovery.
-- Add release versioning and changelog.
+## v0.1 当前目标
+
+- 收敛为一个推荐安装入口：`public-opinion-data-workflow`。
+- 保留通用数据处理和专项情感分析两个内部模块。
+- 支持隐私审计、脱敏、清洗、去重、筛选。
+- 支持有标签体系和无标签体系两种情感/态度分析路线。
+- 支持大样本下的抽样 AI 标注、分类器迁移、复核迭代。
+- 支持本地标准 demo 包和测试台账。
+
+## v0.2
+
+- 增强脱敏规则和正文敏感实体识别。
+- 增加更完整的质量报告模板。
+- 增加更多真实脱敏测试案例。
+
+## v0.3
+
+- 引入更强的主题/表达簇发现能力。
+- 支持 embedding-based clustering 作为可选增强。
+- 增强已有标签对照和差异样本解释。
+
+## v0.4
+
+- 一键运行 demo。
+- 更完整的回归测试。
+- 面向不同 agent 环境的安装兼容说明。

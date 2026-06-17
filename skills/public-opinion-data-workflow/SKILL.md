@@ -5,17 +5,18 @@ description: "当需要端到端处理中文舆情、社交媒体、问卷、评
 
 # Public Opinion Data Workflow
 
-Use this skill as the single integrated workflow for public-opinion data processing. It combines the general table-processing workflow with the specialist large-scale Chinese sentiment workflow.
+Use this skill as the recommended single installable entrypoint for Chinese public-opinion data processing and large-scale comment sentiment/stance analysis. It combines the general table-processing workflow with the specialist large-scale Chinese sentiment workflow.
 
 ## Default Route
 
 1. Inspect the source file before transforming it. For Excel workbooks, examine every relevant sheet.
 2. Infer field roles: text, source/platform, date/time, ID/link/hash, author/user, metrics, category, and unknown.
 3. Normalize fields across sheets only after preserving traceability: source file, source sheet, and source row.
-4. Clean text, remove empty or low-information rows, deduplicate, filter keywords, and generate previewable logs.
-5. If the user provides categories, apply those categories. If no category taxonomy is provided, run topic discovery first and treat the clusters as candidate themes that still need naming/merging.
+4. De-identify before exporting or sending samples to an external AI: hash sensitive ID/user/link/location fields and mask URL, @handle, email, phone, or long numeric strings inside text.
+5. Clean text, remove empty or low-information rows, deduplicate, filter keywords, and generate previewable logs.
 6. Decide whether the task needs ordinary labels or the large-scale sentiment workflow.
-7. Export new files only. Never overwrite the user's original data unless explicitly asked.
+7. If sentiment/stance labels are not defined yet, do not force positive/neutral/negative. First sample, discover expression clusters, ask AI or the user to name/merge candidate attitude labels, then confirm the label taxonomy.
+8. Export new files only. Never overwrite the user's original data unless explicitly asked.
 
 ## Route Selection
 
@@ -42,6 +43,7 @@ Use scripts in `scripts/data_processing/` when they fit:
 - `process_tabular.py`: configurable merge, clean, filter, dedupe, and export.
 - `make_charts.py`: generate distribution and trend charts.
 - `discover_topics.py`: use dependency-light TF-IDF + k-means to discover rough candidate topics when no category taxonomy is provided.
+- `privacy_audit.py`: inspect likely sensitive columns and risky text patterns before AI labeling or export.
 
 Core requirements:
 
@@ -50,7 +52,7 @@ Core requirements:
 - preserve source sheet and row number;
 - use understandable output column names;
 - create charts with readable titles, labels, and fonts.
-- do not present k-means clusters as final sentiment labels; use them for topic exploration, sampling, or draft theme naming.
+- do not present k-means clusters as final sentiment labels; use them for expression exploration, sampling, or draft attitude/theme naming.
 
 ## Large-Scale Sentiment Workflow
 
@@ -62,17 +64,20 @@ Use scripts in `scripts/sentiment/`:
 - `train_text_classifier.py`: train a dependency-light baseline classifier and score confidence/margins.
 - `select_uncertain.py`: select uncertain, low-confidence, sarcasm-like, and random audit rows.
 - `build_summary_charts.py`: create monthly structure charts and denominator tables.
+- `compare_labels.py`: optional evaluation when a reference label column already exists.
 
 Recommended process:
 
-1. Define a stable label taxonomy before labeling.
-2. Generate a stratified seed sample rather than sending every row to AI.
-3. Ask AI to label the sample with `row_id,label,confidence,reason,is_sarcasm`.
-4. Merge and validate labels before training.
-5. Train/calibrate the classifier and score all cleaned rows.
-6. Select low-confidence, boundary, sarcasm-like, and random samples for another review round.
-7. Repeat until label distribution and audit consistency are stable enough for the use case.
-8. Generate final tables, charts, and method notes.
+1. If labels are provided, rewrite them into a compact taxonomy with definitions, inclusion/exclusion rules, examples, and edge cases.
+2. If labels are not provided, create an exploratory sample and optionally run `discover_topics.py`; use clusters and keyword summaries only as evidence for drafting attitude/sentiment labels, not as final labels.
+3. Confirm the label taxonomy before large-scale labeling.
+4. Generate a stratified seed sample rather than sending every row to AI.
+5. Ask AI to label the sample with `row_id,label,confidence,reason,is_sarcasm`.
+6. Merge and validate labels before training.
+7. Train/calibrate the classifier and score all cleaned rows.
+8. Select low-confidence, boundary, sarcasm-like, and random samples for another review round.
+9. Repeat until label distribution and audit consistency are stable enough for the use case.
+10. Generate final tables, charts, and method notes.
 
 Do not claim that every row was AI-labeled unless every row was actually sent to AI. If using the bundled classifier, describe it as a lightweight baseline or rule-enhanced classifier, not as a production model.
 
@@ -85,6 +90,14 @@ For public-opinion sentiment tasks, define:
 - examples and counterexamples;
 - how to treat sarcasm, mixed positive/negative sentiment, low-context comments, and off-topic promotional text.
 
+When the task is a new issue, create the taxonomy from evidence:
+
+1. sample across platform/source, time, text length, and likely events;
+2. summarize recurring attitudes and noise patterns;
+3. use k-means/keywords only to reveal expression clusters;
+4. merge clusters into business-meaningful attitude labels;
+5. ask the user to confirm the final taxonomy before full-data classification.
+
 ## References
 
 Load only what is needed:
@@ -96,6 +109,8 @@ Load only what is needed:
 - `references/sentiment_labeling.md`: basic sentiment label standards.
 - `references/llm_labeling_prompt.md`: prompt template for AI labeling.
 - `references/method_note.md`: method wording for reports.
+- `references/evaluation.md`: optional reference-label comparison and audit guidance.
+- `references/privacy.md`: de-identification and privacy-risk handling.
 
 ## Quality Bar
 
@@ -104,5 +119,6 @@ Before final delivery:
 - verify output files exist and can be read back;
 - explain raw rows, cleaned rows, removed rows, labeled rows, and final denominator;
 - disclose whether labels are AI-labeled, weak-rule labels, classifier-migrated labels, or reviewed labels;
+- disclose whether the label taxonomy was user-provided or built from exploratory samples;
 - avoid presenting small-sample tests as final accuracy;
 - include audit samples when results are subjective.

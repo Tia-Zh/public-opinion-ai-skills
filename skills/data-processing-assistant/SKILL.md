@@ -18,9 +18,10 @@ The goal is to make Codex behave like a careful data-processing colleague: under
 3. Infer candidate roles for columns, but present them as recommendations when the choice affects results.
 4. Decide whether ordinary labeling is enough or whether a specialist workflow is needed.
 5. Preserve traceability unless the user asks otherwise: source file, source sheet, source row number, and processing notes are useful for auditing.
-6. Apply transformations in small named steps. After each risky step, report before/after row counts and a small preview.
-7. Export a new file. Never overwrite the user's original data unless explicitly requested.
-8. Keep explanations plain-language and user-facing. Avoid exposing implementation details unless the user asks why something happened.
+6. If data contains user-generated comments, account fields, links, IDs, locations, or contact-like fields, run a privacy/de-identification check before AI labeling or external sharing.
+7. Apply transformations in small named steps. After each risky step, report before/after row counts and a small preview.
+8. Export a new file. Never overwrite the user's original data unless explicitly requested.
+9. Keep explanations plain-language and user-facing. Avoid exposing implementation details unless the user asks why something happened.
 
 ## Specialist Handoff
 
@@ -62,6 +63,7 @@ Otherwise, make a reasonable assumption, state it briefly, and continue.
 - **Filter**: keywords with any/all matching, date range, numeric range, category inclusion/exclusion, missing/non-missing values.
 - **Semantic judgment**: field recognition, exclusion-word suggestions, sentiment labels, topic labels, summaries, and clustering labels.
 - **Topic discovery**: when the user has no preset categories, use rough clustering to discover candidate themes, then ask the user or an LLM to name/merge the clusters before treating them as report categories.
+- **Privacy audit**: inspect likely sensitive columns and risky text patterns before AI labeling or export.
 - **Large-scale sentiment handoff**: for high-volume or nuanced Chinese comments, use active-learning sentiment analysis instead of full-row AI labeling.
 - **Analyze**: distributions, crosstabs, time trends, grouped summaries, top terms, and outlier checks.
 - **Visualize**: bar charts, line charts, stacked charts, heatmaps, scatter plots, and cluster maps when suitable.
@@ -75,6 +77,7 @@ Use bundled scripts when they fit; patch or extend them for the user's exact tas
 - `scripts/process_tabular.py`: run configurable cleaning, merging, filtering, dedupe, and export.
 - `scripts/make_charts.py`: generate common charts from processed tables.
 - `scripts/discover_topics.py`: use dependency-light TF-IDF + k-means to discover rough candidate topics when no category taxonomy is provided.
+- `scripts/privacy_audit.py`: identify likely sensitive columns and text patterns that should be hashed, masked, or dropped.
 
 Example:
 
