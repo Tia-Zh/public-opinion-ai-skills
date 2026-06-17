@@ -18,7 +18,7 @@ Core method:
 5. Train, calibrate, or rule-calibrate an automatic classifier.
 6. Run the classifier on all data only after at least one AI-labeled seed batch exists.
 7. Select uncertain/boundary/sarcasm-like samples for another LLM labeling round.
-8. Repeat active-learning rounds until the quality checks converge or the user accepts a quick baseline.
+8. Repeat active-learning rounds until the quality checks converge. If the available AI cannot label the requested sample carefully, reduce batch size, split batches, or use an external LLM/API; do not replace AI semantic labeling with rules.
 9. Run final full-data classification only after convergence criteria are met or clearly disclose why the run stopped early.
 10. Audit low-confidence, uncertain, and random class samples.
 11. Generate report-ready tables and charts.
@@ -127,9 +127,19 @@ Use `scripts/merge_labels.py` to validate:
 
 Never proceed to charts before row_id coverage is checked.
 
+Before training, validate that the AI-reviewed sample covers every final report label. Use `scripts/validate_label_coverage.py` after merging labels. As a practical default, require at least 20-30 AI-reviewed examples per final label before treating the classifier result as meaningful; use more examples for subtle or easily confused labels such as neutral, criticism, sarcasm, or policy demands.
+
+Example:
+
+```powershell
+python scripts/validate_label_coverage.py --labels merged_labels.csv --label-col label --target-labels "正面,中性,负面" --min-per-label 30 --output label_coverage.csv
+```
+
+If coverage fails, do not train as if the sample is ready. Run targeted supplementation for missing or underrepresented labels, label those candidates with AI semantic labeling, merge confirmed labels, and rerun coverage validation.
+
 ### 5. Classifier Or Rule Calibration
 
-Train or calibrate a classifier from AI-labeled samples and use probabilities as uncertainty. Do not replace this step with pure keyword classification unless the classifier cannot run and the output is clearly marked as a weak baseline.
+Train or calibrate a classifier from AI-labeled samples and use probabilities as uncertainty. Do not replace this step with pure keyword classification. If the classifier cannot run, stop and report the blocker or ask to install dependencies; do not produce a final sentiment result from keyword rules.
 
 Before training on large datasets, run:
 
@@ -159,9 +169,10 @@ If installation is not allowed, the Python version is unsupported, or the sklear
 
 For each round:
 
-1. Train/calibrate classifier on current labeled sample.
-2. Score unlabeled/full data.
-3. Select uncertain rows:
+1. Validate AI-reviewed label coverage.
+2. Train/calibrate classifier on current labeled sample only after coverage is acceptable.
+3. Score unlabeled/full data.
+4. Select uncertain rows:
    - low maximum probability;
    - close top-2 class probabilities;
    - sarcasm marker;
@@ -172,10 +183,10 @@ For each round:
    - short but attitude-bearing rows;
    - question/反问-like rows, such as `?`, `？`, `吗`, `难道`, `不好吗`, or `哪里不好`;
    - random audit sample.
-4. Send selected rows to LLM.
-5. Merge labels and repeat.
+5. Send selected rows to LLM.
+6. Merge labels, rerun coverage validation, and repeat.
 
-Do not use self-training as the default active-learning mechanism. Classifier predictions are not truth labels. Add rows to the training set only after AI semantic labeling or human review confirms them. If the user explicitly requests pseudo-labeling or the environment forces a quick baseline, apply all of these guardrails:
+Do not use self-training as the default active-learning mechanism. Classifier predictions are not truth labels. Add rows to the training set only after AI semantic labeling or human review confirms them. If pseudo-labeling is used only for an internal experiment, apply all of these guardrails and do not treat it as a deliverable result:
 
 - mark pseudo-labels separately from AI-reviewed labels;
 - cap how many pseudo-labels each class can add per round;
@@ -204,15 +215,17 @@ Do not stop because a fixed number of rounds has been reached. Stop only when on
 - random audit samples show few obvious errors;
 - key categories such as employment anxiety, risk concern, sarcasm, and neutral information no longer frequently confuse with each other;
 - every target label has enough labeled examples or has been deliberately merged/removed with a documented reason;
-- the user explicitly asks for a quick baseline.
+- the user explicitly asks to stop and accepts that the run is incomplete.
 
-If stopping after only one round, do not call the result final. Label it as an initial baseline.
+If stopping after only one round, do not call the result final. Label it as an incomplete test run and report the missing review steps.
 
 Treat raw Naive Bayes probabilities with caution. If `fast-nb` produces very high confidence values, do not interpret them as calibrated accuracy. Prefer `top2_margin`, disagreement samples, and random audits for uncertainty selection.
 
 If a predicted distribution drops plausible labels to zero, do not accept it silently. Check labeled-sample coverage first. A zero or near-zero category often means the active-learning sample missed that class, not that the class is absent in the data.
 
 If an exclusion or low-information bucket becomes unusually large, especially with low confidence, do not accept it silently. Audit that bucket before reporting. A high low-information share may mean the classifier is dumping hard-to-classify but relevant texts into the exclusion bucket. Sample low-confidence exclusion predictions and relevant-looking exclusion predictions, correct labels, and retrain if many are actually relevant.
+
+After each AI-labeled sample batch, inspect the label distribution before training. If a three-class batch becomes extremely imbalanced, such as almost all negative or almost no neutral, do not proceed as if it were high-quality training data. First audit whether the imbalance comes from true sampling, rule-based pseudo-labeling, unclear label definitions, missing neutral examples, or systematic misunderstanding. The correct response is targeted supplementation and review, not immediate training.
 
 If a negative or positive class becomes unusually large, audit before reporting. In Chinese public comments, questions, rhetorical questions, policy demands, and off-topic demands are often misread as negative because they contain words such as `不`, `取消`, `降`, `不好`, or question marks. Sample and review:
 
@@ -262,7 +275,7 @@ Always generate:
 - sarcasm-like sample;
 - question/反问-like sample when negative or positive shares are high;
 - label transition matrix between rounds when iterative classification is used;
-- month/event distribution.
+- month/event distribution only when a usable date/event column exists or the user asks for trend analysis.
 
 For reports, disclose the denominator:
 
@@ -276,6 +289,8 @@ For reports, disclose the denominator:
 Prefer clear denominators:
 
 - 100% stacked bars for final classes;
+- overall label distribution for every run;
+- monthly/event trend charts only when the source data has a usable date/event column or the user asks for trend analysis;
 - separate line/bar for risk voices if small classes are visually suppressed;
 - avoid mixing volume and sentiment in one chart unless the scale and meaning are obvious.
 
@@ -290,7 +305,8 @@ Bundled scripts are starting points. Patch column names and label lists for the 
 - `scripts/prepare_text_data.py`: clean, hash, dedupe, create `row_id`.
 - `scripts/make_llm_batches.py`: create LLM-ready batch files and a prompt.
 - `scripts/merge_labels.py`: merge labels and validate row_id coverage.
-- `scripts/train_text_classifier.py`: train a dependency-light baseline classifier and score confidence/margins.
+- `scripts/validate_label_coverage.py`: check whether each final label has enough AI-reviewed examples before training.
+- `scripts/train_text_classifier.py`: train a lightweight classifier from AI-reviewed labels and score confidence/margins.
 - `scripts/select_uncertain.py`: select low-confidence and boundary samples.
 - `scripts/make_targeted_samples.py`: create targeted review batches for underrepresented labels using weak labels or keyword candidates.
 - `scripts/build_summary_charts.py`: create summary tables and monthly charts.

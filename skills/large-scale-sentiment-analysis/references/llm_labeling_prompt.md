@@ -16,6 +16,7 @@ Replace these examples with task-specific labels and roles:
 - Preserve `row_id`.
 - Do not classify by isolated keywords only.
 - Do not use a keyword-rule script as a substitute for this labeling step.
+- If the batch is too large to label carefully, split it into smaller batches, reduce the requested batch size, or ask for an external LLM/API workflow. Do not produce rule-based pseudo-labels and do not call them AI labels.
 - Consider semantics, tone, negation, sarcasm, and context.
 - If multiple attitudes appear, choose the dominant label.
 - If the schema defines an ambiguity/insufficient-context final label, use it only when no dominant label can be assigned.

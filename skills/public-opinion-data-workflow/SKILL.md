@@ -1,6 +1,6 @@
 ---
 name: public-opinion-data-workflow
-description: "当需要端到端处理中文舆情、社交媒体、问卷、评论或采集表格数据时使用：检查 Excel/CSV 文件，识别字段，标准化多表，清洗文本，去重，关键词筛选，生成图表，导出可复核结果；当情感或立场分析样本量大、全量 AI 成本高或需要复核时，转入抽样 AI 标注、分类器迁移、低置信度复核和质量摘要流程。"
+description: "当需要端到端处理中文舆情、社交媒体、问卷、评论或采集表格数据时使用：检查 Excel/CSV 文件，识别字段，标准化多表，清洗文本，标记重复、关键词筛选，生成图表，导出可复核结果；当情感或立场分析样本量大、全量 AI 成本高或需要复核时，转入抽样 AI 标注、分类器迁移、低置信度复核和质量摘要流程。"
 ---
 
 # Public Opinion Data Workflow
@@ -64,7 +64,7 @@ Use scripts in `scripts/sentiment/`:
 - `prepare_text_data.py`: clean, hash sensitive fields, deduplicate, and create stable `row_id`.
 - `make_llm_batches.py`: create stratified AI-labeling samples and batch payloads.
 - `merge_labels.py`: validate and merge AI labels.
-- `train_text_classifier.py`: train a dependency-light baseline classifier and score confidence/margins.
+- `train_text_classifier.py`: train a lightweight classifier from AI-reviewed labels and score confidence/margins.
 - `select_uncertain.py`: select uncertain, low-confidence, sarcasm-like, and random audit rows.
 - `build_summary_charts.py`: create monthly structure charts and denominator tables.
 - `compare_labels.py`: optional evaluation when a reference label column already exists.
@@ -77,14 +77,15 @@ Recommended process:
 4. Generate a stratified seed sample rather than sending every row to AI.
 5. Ask AI to label the sample with `row_id,label,confidence,reason,is_sarcasm`.
 6. Merge and validate labels before training.
-7. Train/calibrate the classifier and score all cleaned rows.
-8. Select low-confidence, boundary, sarcasm-like, and random samples for another review round.
-9. Repeat until label distribution and audit consistency are stable enough for the use case.
-10. Generate final tables, charts, and method notes.
+7. Validate label coverage: every final report label should have enough AI-reviewed examples before training, with a practical default of at least 20-30 examples per label.
+8. Train/calibrate the classifier and score all cleaned rows.
+9. Select low-confidence, boundary, sarcasm-like, and random samples for another review round.
+10. Repeat until label distribution and audit consistency are stable enough for the use case.
+11. Generate final tables, charts, and method notes.
 
-Do not claim that every row was AI-labeled unless every row was actually sent to AI. If using the bundled classifier, describe it as a lightweight baseline or rule-enhanced classifier, not as a production model.
+Do not claim that every row was AI-labeled unless every row was actually sent to AI. If using the bundled classifier, describe it as classifier migration from AI-reviewed samples, not as full-row AI labeling.
 
-Do not use classifier self-training as the normal path. Classifier predictions are not truth labels and should not be added back into the training set unless they have been AI-reviewed or human-confirmed. If pseudo-labeling is explicitly used for a quick baseline, keep pseudo-labels separate, cap class additions per round, include neutral/weak-attitude samples deliberately, and pause when one class absorbs many rows from another class.
+Do not use classifier self-training as the normal path. Classifier predictions are not truth labels and should not be added back into the training set unless they have been AI-reviewed or human-confirmed. If pseudo-labeling is used only for an internal experiment, keep pseudo-labels separate, cap class additions per round, include neutral/weak-attitude samples deliberately, and do not treat the pseudo-labeled run as a deliverable result.
 
 For three-class positive/neutral/negative runs, neutral is a real report label, not a leftover category. Include neutral examples in seed samples, uncertain samples, and audits. If many neutral rows shift to positive or negative between rounds, review those transitions before reporting.
 
@@ -95,6 +96,8 @@ When positive or negative shares become high, audit likely failure modes before 
 - questions and rhetorical questions;
 - off-topic or adjacent-policy demands;
 - rows that changed labels between rounds.
+
+After each AI-labeled sample batch, check the label distribution before training. If the training sample is extremely imbalanced, such as nearly all negative or almost no neutral in a three-class task, pause and audit the labeling method before training. Do not proceed when the labels were produced by a keyword or heuristic script pretending to be AI semantic labeling. First supplement underrepresented labels, AI-review the candidates, and rerun the coverage check.
 
 ## Label Taxonomy Guidance
 
@@ -137,5 +140,6 @@ Before final delivery:
 - explain how short attitude texts were handled;
 - disclose whether labels are AI-labeled, weak-rule labels, classifier-migrated labels, or reviewed labels;
 - disclose whether the label taxonomy was user-provided or built from exploratory samples;
+- generate overall label distribution for every sentiment run; generate monthly/event charts only when a usable date/event column exists or the user asks for trend analysis;
 - avoid presenting small-sample tests as final accuracy;
 - include audit samples when results are subjective.
