@@ -106,6 +106,14 @@ Use `scripts/make_llm_batches.py` to create stratified or full batches. Prefer h
 
 If platform/source volumes are highly imbalanced, do not rely on pure overall random sampling because small platforms may disappear from the seed. Also do not use pure equal-platform sampling as the only basis because tiny platforms may be overrepresented. Use a hybrid approach: minimum coverage for each meaningful platform/source, caps for tiny strata, and random/proportional fill for the remaining sample. Final result shares must still use the chosen denominator, usually the volume denominator.
 
+For subjective large-scale sentiment/stance tasks, do not start with a tiny seed unless the user explicitly asks for a smoke test. Practical defaults:
+
+- under 10,000 rows: 150-300 AI-reviewed seed examples;
+- 10,000-100,000 rows: 300-600 AI-reviewed seed examples;
+- above 100,000 rows or many platforms/topics: 500-1,000 AI-reviewed seed examples, split into manageable batches.
+
+These are starting points, not stopping rules. Label coverage per final output label and audit quality still decide whether the sample is sufficient.
+
 For active learning rounds, batch only uncertain/boundary cases.
 
 ### 3. AI Semantic Labeling
@@ -197,6 +205,8 @@ For each round:
 5. Send selected rows to LLM.
 6. Merge labels, rerun coverage validation, and repeat.
 
+When selecting samples for review, prefer unique text expressions first so AI effort is not spent repeatedly labeling identical comments. Keep `duplicate_count` or equivalent volume fields so repeated comments still contribute to final volume shares. Review duplicate-heavy expressions separately only when repetition itself may be spam, coordinated behavior, or an important signal.
+
 Do not use self-training as the default active-learning mechanism. Classifier predictions are not truth labels. Add rows to the training set only after AI semantic labeling or human review confirms them. If pseudo-labeling is used only for an internal experiment, apply all of these guardrails and do not treat it as a deliverable result:
 
 - mark pseudo-labels separately from AI-reviewed labels;
@@ -247,6 +257,8 @@ If a negative or positive class becomes unusually large, audit before reporting.
 - high-duplicate short rows whose volume materially changes the final share.
 
 Do not continue iterative training when a transition matrix shows one class absorbing many rows from another class without review. Build a small fixed audit set at the beginning and score it after every round. If stable audit rows drift in one direction, pause, review changed cases, add confirmed corrections, and retrain.
+
+If most full-data predictions remain low-confidence or marked `needs_review`, do not deliver the class distribution as a final result. As a practical quality gate, if more than 30-40% of rows are below the chosen confidence/margin threshold after a review round, treat the run as not converged: add more AI-reviewed samples, improve the label schema, review failure modes, or ask the user to narrow the task. A run with 90%+ low-confidence rows is a process diagnostic, not a usable sentiment result.
 
 ### 5a. Output Discipline
 
@@ -318,7 +330,7 @@ Bundled scripts are starting points. Patch column names and label lists for the 
 - `scripts/merge_labels.py`: merge labels and validate row_id coverage.
 - `scripts/validate_label_coverage.py`: check whether each final label has enough AI-reviewed examples before training.
 - `scripts/train_text_classifier.py`: train a lightweight classifier from AI-reviewed labels and score confidence/margins.
-- `scripts/select_uncertain.py`: select low-confidence and boundary samples.
+- `scripts/select_uncertain.py`: select low-confidence and boundary samples, deduplicating review text expressions by default while preserving volume fields.
 - `scripts/make_targeted_samples.py`: create targeted review batches for underrepresented labels using weak labels or keyword candidates.
 - `scripts/build_summary_charts.py`: create summary tables and monthly charts.
 - `scripts/compare_labels.py`: compare predictions with an existing reference label column when available.

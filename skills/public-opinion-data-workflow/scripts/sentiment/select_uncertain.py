@@ -19,6 +19,16 @@ def main():
     ap.add_argument("--weak-label-col", default="", help="Optional weak/rule candidate label column")
     ap.add_argument("--weak-per-class", type=int, default=80)
     ap.add_argument("--disagreement-n", type=int, default=300)
+    ap.add_argument(
+        "--dedupe-review-col",
+        default="clean_text",
+        help="Deduplicate review batches by this text column so AI reviews unique expressions first. Use empty string to disable.",
+    )
+    ap.add_argument(
+        "--keep-duplicate-texts",
+        action="store_true",
+        help="Keep repeated texts in the review batch. Use only when duplicate wording itself needs review.",
+    )
     args = ap.parse_args()
 
     df = pd.read_csv(Path(args.merged).expanduser().resolve(), encoding="utf-8-sig")
@@ -52,7 +62,17 @@ def main():
             if len(disagreement):
                 parts.append(disagreement.sample(min(len(disagreement), args.disagreement_n), random_state=44))
 
-    out = pd.concat(parts).drop_duplicates("row_id").head(args.n)
+    out = pd.concat(parts).drop_duplicates("row_id")
+    before_text_dedupe = len(out)
+    if (
+        args.dedupe_review_col
+        and not args.keep_duplicate_texts
+        and args.dedupe_review_col in out.columns
+    ):
+        helper = out[args.dedupe_review_col].fillna("").astype(str).str.strip()
+        out = out.loc[~helper.duplicated()].copy()
+        out["review_text_dedupe_removed"] = before_text_dedupe - len(out)
+    out = out.head(args.n)
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(args.output, index=False, encoding="utf-8-sig")
     print(args.output)
