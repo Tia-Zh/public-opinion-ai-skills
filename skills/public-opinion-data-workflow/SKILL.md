@@ -13,7 +13,7 @@ Use this skill as the recommended single installable entrypoint for Chinese publ
 2. Infer field roles: text, source/platform, date/time, ID/link/hash, author/user, metrics, category, and unknown.
 3. Normalize fields across sheets only after preserving traceability: source file, source sheet, and source row.
 4. De-identify before exporting or sending samples to an external AI: hash sensitive ID/user/link/location fields and mask URL, @handle, email, phone, or long numeric strings inside text.
-5. Clean text, remove empty or low-information rows, deduplicate, filter keywords, and generate previewable logs.
+5. Clean text, remove only clearly empty or task-irrelevant rows, mark short/duplicated rows, filter keywords when requested, and generate previewable logs.
 6. Decide whether the task needs ordinary labels or the large-scale sentiment workflow.
 7. If sentiment/stance labels are not defined yet, do not force positive/neutral/negative. First sample, discover expression clusters, ask AI or the user to name/merge candidate attitude labels, then confirm the label taxonomy.
 8. Export new files only. Never overwrite the user's original data unless explicitly asked.
@@ -50,6 +50,8 @@ Core requirements:
 - report before/after row counts for risky steps;
 - keep removed rows or at least summarize why they were removed;
 - preserve source sheet and row number;
+- do not remove comments only because they are short; short attitude texts such as `[赞]`, `[强]`, `支持`, `赞成`, `点赞`, `反对`, or short complaint phrases may be valid public-opinion signals;
+- do not collapse repeated comments silently; keep a volume view and, when useful, a deduplicated expression view with duplicate counts;
 - use understandable output column names;
 - create charts with readable titles, labels, and fonts.
 - do not present k-means clusters as final sentiment labels; use them for expression exploration, sampling, or draft attitude/theme naming.
@@ -80,6 +82,18 @@ Recommended process:
 10. Generate final tables, charts, and method notes.
 
 Do not claim that every row was AI-labeled unless every row was actually sent to AI. If using the bundled classifier, describe it as a lightweight baseline or rule-enhanced classifier, not as a production model.
+
+Do not use classifier self-training as the normal path. Classifier predictions are not truth labels and should not be added back into the training set unless they have been AI-reviewed or human-confirmed. If pseudo-labeling is explicitly used for a quick baseline, keep pseudo-labels separate, cap class additions per round, include neutral/weak-attitude samples deliberately, and pause when one class absorbs many rows from another class.
+
+For three-class positive/neutral/negative runs, neutral is a real report label, not a leftover category. Include neutral examples in seed samples, uncertain samples, and audits. If many neutral rows shift to positive or negative between rounds, review those transitions before reporting.
+
+When positive or negative shares become high, audit likely failure modes before treating the distribution as final:
+
+- short attitude texts that may have been filtered or under-sampled;
+- duplicate short texts whose repeated volume changes the share;
+- questions and rhetorical questions;
+- off-topic or adjacent-policy demands;
+- rows that changed labels between rounds.
 
 ## Label Taxonomy Guidance
 
@@ -118,6 +132,8 @@ Before final delivery:
 
 - verify output files exist and can be read back;
 - explain raw rows, cleaned rows, removed rows, labeled rows, and final denominator;
+- explain whether repeated comments are counted as volume or deduplicated expressions;
+- explain how short attitude texts were handled;
 - disclose whether labels are AI-labeled, weak-rule labels, classifier-migrated labels, or reviewed labels;
 - disclose whether the label taxonomy was user-provided or built from exploratory samples;
 - avoid presenting small-sample tests as final accuracy;

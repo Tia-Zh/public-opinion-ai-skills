@@ -11,7 +11,7 @@ This skill can be called directly, or as the specialist workflow from `data-proc
 
 Core method:
 
-1. Clean, de-identify, and deduplicate text.
+1. Clean and de-identify text, while preserving both raw volume and optional deduplicated views.
 2. If labels are missing, explore samples and expression clusters to draft a task-specific sentiment/stance taxonomy.
 3. Define a small, stable label taxonomy with edge cases.
 4. Ask an LLM to label a stratified seed sample.
@@ -62,7 +62,16 @@ When invoked by `data-processing-assistant`, expect the main skill to provide th
 
 ### 1. Prepare Data
 
-Use `scripts/prepare_text_data.py` to normalize text, hash sensitive source fields, remove obvious low-information rows, deduplicate, and assign stable `row_id`.
+Use `scripts/prepare_text_data.py` to normalize text, hash sensitive source fields, mark short/duplicated rows, and assign stable `row_id`.
+
+Do not remove comments only because they are short. In public-opinion data, short texts such as `[赞]`, `[强]`, `支持`, `赞成`, `点赞`, `反对`, or short complaint phrases can be real attitude signals. The default preparation script does not filter by length. If a task uses `--min-info-len`, keep rows with short attitude signals and record how many short rows were removed or retained.
+
+Do not collapse repeated comments silently. Repetition may be spam, but it may also be real public-opinion volume: ten people saying `赞成` should not automatically become one person. Keep all rows by default and add `text_hash` and `duplicate_count`. If an expression-level deduplicated analysis is needed, use a dedupe mode deliberately and report both:
+
+- volume denominator: repeated comments counted as repeated voices;
+- unique-expression denominator: repeated identical text counted once or weighted by `duplicate_count`.
+
+For sentiment/stance reporting, prefer the volume denominator unless the user explicitly asks for deduplicated expression analysis or spam removal.
 
 Input can be CSV/XLSX. Required text column must be specified. Optional columns:
 
@@ -159,9 +168,23 @@ For each round:
    - category-specific risk words;
    - weak-rule candidates for underrepresented labels;
    - examples where weak-rule label and model prediction disagree;
+   - rows whose predicted label changed between rounds, especially neutral-to-positive or neutral-to-negative drift;
+   - short but attitude-bearing rows;
+   - question/反问-like rows, such as `?`, `？`, `吗`, `难道`, `不好吗`, or `哪里不好`;
    - random audit sample.
 4. Send selected rows to LLM.
 5. Merge labels and repeat.
+
+Do not use self-training as the default active-learning mechanism. Classifier predictions are not truth labels. Add rows to the training set only after AI semantic labeling or human review confirms them. If the user explicitly requests pseudo-labeling or the environment forces a quick baseline, apply all of these guardrails:
+
+- mark pseudo-labels separately from AI-reviewed labels;
+- cap how many pseudo-labels each class can add per round;
+- keep class additions reasonably balanced, especially for neutral or weak-attitude classes;
+- never let one class expand only because its classifier confidence is high;
+- run an audit batch before the next round and remove pseudo-labels that fail review;
+- stop and review if the class distribution shifts sharply between rounds.
+
+For three-class positive/neutral/negative tasks, treat neutral as a real target class, not a leftover bucket. Neutral samples often have lower confidence because they lack strong sentiment words; this makes them vulnerable to being squeezed into positive or negative during self-training. Include neutral examples in seed samples, targeted supplementation, uncertain batches, and fixed audit sets.
 
 Avoid class starvation. If a target label is absent or nearly absent in the AI-labeled sample, uncertainty sampling alone will not recover it because the classifier has not learned that class. Use weak rules, anchor phrases, keyword candidates, or clustering to find possible examples for that label, then ask the LLM to judge them. Treat weak rules as candidate generators, not final labels.
 
@@ -190,6 +213,16 @@ Treat raw Naive Bayes probabilities with caution. If `fast-nb` produces very hig
 If a predicted distribution drops plausible labels to zero, do not accept it silently. Check labeled-sample coverage first. A zero or near-zero category often means the active-learning sample missed that class, not that the class is absent in the data.
 
 If an exclusion or low-information bucket becomes unusually large, especially with low confidence, do not accept it silently. Audit that bucket before reporting. A high low-information share may mean the classifier is dumping hard-to-classify but relevant texts into the exclusion bucket. Sample low-confidence exclusion predictions and relevant-looking exclusion predictions, correct labels, and retrain if many are actually relevant.
+
+If a negative or positive class becomes unusually large, audit before reporting. In Chinese public comments, questions, rhetorical questions, policy demands, and off-topic demands are often misread as negative because they contain words such as `不`, `取消`, `降`, `不好`, or question marks. Sample and review:
+
+- question/反问 rows predicted as negative;
+- off-topic or adjacent-policy rows predicted as negative;
+- rows that changed from neutral to negative or neutral to positive between rounds;
+- short positive/negative rows that may have been filtered or under-sampled;
+- high-duplicate short rows whose volume materially changes the final share.
+
+Do not continue iterative training when a transition matrix shows one class absorbing many rows from another class without review. Build a small fixed audit set at the beginning and score it after every round. If stable audit rows drift in one direction, pause, review changed cases, add confirmed corrections, and retrain.
 
 ### 5a. Output Discipline
 
@@ -221,10 +254,14 @@ Always generate:
 
 - label distribution;
 - confidence distribution;
+- duplicate/volume notes, including whether the reported distribution is volume-weighted or deduplicated;
+- short-text attitude sample and handling note;
 - per-class random audit sample;
 - low-confidence sample;
 - uncertain sample;
 - sarcasm-like sample;
+- question/反问-like sample when negative or positive shares are high;
+- label transition matrix between rounds when iterative classification is used;
 - month/event distribution.
 
 For reports, disclose the denominator:
