@@ -99,7 +99,7 @@ When positive or negative shares become high, audit likely failure modes before 
 
 After each AI-labeled sample batch, check the label distribution before training. If the training sample is extremely imbalanced, such as nearly all negative or almost no neutral in a three-class task, pause and audit the labeling method before training. Do not proceed when the labels were produced by a keyword or heuristic script pretending to be AI semantic labeling. First supplement underrepresented labels, AI-review the candidates, and rerun the coverage check.
 
-For large subjective datasets, avoid tiny seed samples. As practical defaults, use 300-600 AI-reviewed seed examples for 10,000-100,000 rows and 500-1,000 for larger or multi-platform datasets, split into manageable batches. Smaller seeds are acceptable only for smoke tests and should not be presented as final quality.
+For large subjective datasets, avoid tiny seed samples but do not overload the current AI agent. As practical defaults, use 200-400 AI-reviewed seed examples for 10,000-100,000 rows and 300-500 for larger or multi-platform datasets, split into batches of 50-100. Do not ask the current AI agent to label more than 500 seed examples in one pass. Smaller seeds are acceptable only for smoke tests and should not be presented as final quality.
 
 When selecting uncertain samples for review, prefer unique text expressions first and preserve `duplicate_count` or equivalent volume fields. This avoids spending review effort on repeated identical wording while still allowing repeated comments to count in the final volume denominator.
 

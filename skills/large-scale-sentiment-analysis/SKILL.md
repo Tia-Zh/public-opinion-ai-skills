@@ -108,11 +108,11 @@ If platform/source volumes are highly imbalanced, do not rely on pure overall ra
 
 For subjective large-scale sentiment/stance tasks, do not start with a tiny seed unless the user explicitly asks for a smoke test. Practical defaults:
 
-- under 10,000 rows: 150-300 AI-reviewed seed examples;
-- 10,000-100,000 rows: 300-600 AI-reviewed seed examples;
-- above 100,000 rows or many platforms/topics: 500-1,000 AI-reviewed seed examples, split into manageable batches.
+- under 10,000 rows: 100-200 AI-reviewed seed examples;
+- 10,000-100,000 rows: 200-400 AI-reviewed seed examples;
+- above 100,000 rows or many platforms/topics: 300-500 AI-reviewed seed examples.
 
-These are starting points, not stopping rules. Label coverage per final output label and audit quality still decide whether the sample is sufficient.
+Do not ask the current AI agent to label more than 500 seed examples in one pass. Split seed labeling into batches of 50-100 rows. These are starting points, not stopping rules: label coverage per final output label and audit quality decide whether more targeted samples are needed. Prefer adding smaller, targeted review batches in later rounds over forcing a huge first seed batch.
 
 For active learning rounds, batch only uncertain/boundary cases.
 
