@@ -90,7 +90,7 @@ For active learning rounds, batch only uncertain/boundary cases.
 
 ### 3. AI Semantic Labeling
 
-Use the current AI agent's semantic judgment, or an available LLM/API if the environment provides one, to label the batch according to the schema. Do not write a keyword-rule script and treat its output as AI semantic labeling.
+Use the current AI agent's natural-language understanding, or an available LLM/API if the environment provides one, to label the batch according to the schema. The AI must read each sampled text, understand the full meaning, tone, negation, sarcasm, context, and dominant attitude, then choose the best label from the schema. Do not write a keyword-rule script and treat its output as AI labeling.
 
 Use the prompt template in `references/llm_labeling_prompt.md` when you need a separate prompt or external model call. The labeling task must include:
 
@@ -120,7 +120,7 @@ Never proceed to charts before row_id coverage is checked.
 
 ### 5. Classifier Or Rule Calibration
 
-Train or calibrate a classifier from LLM-labeled samples and use probabilities as uncertainty. Do not replace this step with pure keyword classification unless the classifier cannot run and the output is clearly marked as a weak baseline.
+Train or calibrate a classifier from AI-labeled samples and use probabilities as uncertainty. Do not replace this step with pure keyword classification unless the classifier cannot run and the output is clearly marked as a weak baseline.
 
 Before training on large datasets, run:
 
