@@ -109,13 +109,25 @@ Never proceed to charts before row_id coverage is checked.
 
 Train or calibrate a classifier from LLM-labeled samples and use probabilities as uncertainty. Do not replace this step with pure keyword classification unless the classifier cannot run and the output is clearly marked as a weak baseline.
 
+Before training on large datasets, run:
+
+```powershell
+python scripts/check_dependencies.py
+```
+
+If recommended packages are missing, ask the user whether to install them. Do not install dependencies silently. If the user agrees, run:
+
+```powershell
+python scripts/install_optional_dependencies.py
+```
+
 Use `scripts/train_text_classifier.py` directly. It supports:
 
 - `--backend auto` (default): use `scikit-learn` logistic regression when available; otherwise fall back to fast character n-gram Naive Bayes.
 - `--backend sklearn`: require `scikit-learn`; fail if unavailable.
 - `--backend fast-nb`: use the dependency-light fallback.
 
-`scikit-learn` is the Python package name; it is imported as `sklearn`. If the environment allows installing dependencies, prefer:
+`scikit-learn` is the Python package name; it is imported as `sklearn`. It is the preferred local classifier backend because it vectorizes text features and runs much faster than pure Python loops on large files. If the environment allows installing dependencies, prefer:
 
 ```powershell
 python -m pip install scikit-learn
