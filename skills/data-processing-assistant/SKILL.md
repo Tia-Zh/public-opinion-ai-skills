@@ -1,6 +1,6 @@
 ---
 name: data-processing-assistant
-description: "当用户需要处理 Excel、CSV、TSV、多工作表表格、采集数据、问卷、评论、日志或运营表时使用：检查文件结构，识别字段，合并多表，清洗文本，去重，关键词筛选，打标签，汇总统计，生成图表并导出可复核结果。本 skill 不绑定固定领域，应先理解数据结构和任务目标；如果遇到大规模中文评论情感、立场或舆情分类，且全量 AI 标注成本高或需要复核，应转入 large-scale-sentiment-analysis 专项流程。"
+description: "当用户需要处理 Excel、CSV、TSV、多工作表表格、采集数据、问卷、评论、日志或运营表时使用：检查文件结构，识别字段，合并多表，清洗文本，必要时去重或标记重复，关键词筛选，打标签，汇总统计，生成图表并导出可复核结果。本 skill 不绑定固定领域，应先理解数据结构和任务目标；如果遇到大规模中文评论情感、立场或舆情分类，且全量 AI 标注成本高或需要复核，应转入 large-scale-sentiment-analysis 专项流程。"
 ---
 
 # Data Processing Assistant
@@ -59,7 +59,7 @@ Otherwise, make a reasonable assumption, state it briefly, and continue.
 - **Normalize fields**: map differently named columns into common output names when the user wants a combined table.
 - **Merge sheets**: combine sheets only after aligning columns and preserving source sheet and source row.
 - **Clean text**: trim spaces, normalize newlines, remove empty values, optionally strip URLs, mentions, emoji, or boilerplate.
-- **Deduplicate**: exact text, normalized text, prefix length, selected key columns, or fuzzy similarity when justified.
+- **Duplicate handling**: mark duplicates by hash/count by default when repeated volume may matter; deduplicate by exact text, normalized text, prefix length, selected key columns, or fuzzy similarity only when justified by the task or requested by the user.
 - **Filter**: keywords with any/all matching, date range, numeric range, category inclusion/exclusion, missing/non-missing values.
 - **Semantic judgment**: field recognition, exclusion-word suggestions, sentiment labels, topic labels, summaries, and clustering labels.
 - **Topic discovery**: when the user has no preset categories, use rough clustering to discover candidate themes, then ask the user or an LLM to name/merge the clusters before treating them as report categories.

@@ -1,4 +1,4 @@
 interface:
   display_name: "通用数据处理助手"
-  short_description: "按固定流程检查、隐私审计、清洗、筛选、去重、标注、图表化并导出表格数据。"
-  default_prompt: "请使用 $data-processing-assistant 检查这个文件，判断字段和处理口径，必要时先做隐私审计/脱敏建议，再完成清洗、筛选、去重、统计、图表和导出；如果任务变成大规模中文情感或舆情分类，请转入 $large-scale-sentiment-analysis。"
+  short_description: "按固定流程检查、隐私审计、清洗、筛选、重复处理、标注、图表化并导出表格数据。"
+  default_prompt: "请使用 $data-processing-assistant 检查这个文件，判断字段和处理口径，必要时先做隐私审计/脱敏建议，再完成清洗、筛选、重复标记或必要去重、统计、图表和导出；如果任务变成大规模中文情感或舆情分类，请转入 $large-scale-sentiment-analysis。"

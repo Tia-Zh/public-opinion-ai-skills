@@ -16,7 +16,7 @@ Use deterministic code for tasks that should be exact:
 
 - row counts
 - filtering by exact keyword/date/category rules
-- exact dedupe
+- exact dedupe when the user explicitly asks for a deduplicated view or when the task requires unique records
 - date parsing
 - arithmetic summaries
 
