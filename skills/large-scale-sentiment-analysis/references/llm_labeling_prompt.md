@@ -19,6 +19,7 @@ Replace these examples with task-specific labels and roles:
 - Consider semantics, tone, negation, sarcasm, and context.
 - First decide whether the text is relevant to the user's topic and meaningful enough to enter the output-label denominator.
 - Do not force irrelevant, off-topic, spam, or unusable context-poor rows into a neutral output label.
+- Pure acknowledgements, greetings, or contextless emoji-only rows such as `了解`, `好的`, `收到`, `早安`, `[捂脸]`, `[呲牙]`, `[玫瑰]`, or `[微笑]` are usually low-information/exclusion rows, not neutral. Short explicit attitude signals such as `[赞]`, `[强]`, `[爱心]`, `支持`, `赞成`, `反对`, and `不支持` should be labeled by attitude.
 - If multiple attitudes appear, choose the dominant label.
 - If the schema defines an ambiguity/insufficient-context final label, use it only when no dominant label can be assigned.
 - If ambiguity is only a review status, choose the best label and set a low confidence/reason rather than inventing a classifier label.

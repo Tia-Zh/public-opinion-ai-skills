@@ -20,6 +20,8 @@ Use internal flags or labels when needed:
 
 Report these separately. Do not force them into `中立` unless the user explicitly asks for every row to receive one of the output labels.
 
+Common low-information examples include pure acknowledgements or greetings such as `了解`, `好的`, `收到`, `知道了`, `早安`, and emoji-only rows such as `[捂脸]`, `[呲牙]`, `[玫瑰]`, `[微笑]` when no surrounding text establishes an attitude. These should usually be excluded from the sentiment denominator or sent to review, not counted as `中立`. Short explicit attitude signals such as `[赞]`, `[强]`, `[爱心]`, `支持`, `赞成`, `反对`, and `不支持` are meaningful and should be labeled by attitude.
+
 ## Judgment Rules
 
 Judge the attitude expressed in the text itself, not the topic alone. A text about a negative event can still be neutral if it only reports facts.
@@ -34,6 +36,8 @@ For public-opinion or service-response data, classify by the author's stance or 
 Sarcasm and rhetorical praise should be treated by actual meaning, not surface praise words.
 
 If the text is relevant but has no clear positive or negative attitude, choose `中立`. If it is unrelated, off-topic, spam, contextless, or impossible to connect to the user's topic, mark it as an exclusion/review category instead of `中立`.
+
+Use `中立` for meaningful relevant content, such as factual statements, genuine questions, procedural explanations, or balanced discussion. Do not use `中立` as the default bucket for texts that contain too little information to judge.
 
 ## Recommended Output Columns
 

@@ -56,6 +56,8 @@ Treat the user's requested labels as the output schema, not necessarily the full
 
 Do not force irrelevant, off-topic, spam, pure contextless replies, or insufficient-context rows into `中性` just because the user only requested `正面/中性/负面`. `中性` means relevant but with no clear positive or negative attitude. Exclusion rows should be counted and disclosed separately, then removed from the denominator used for the requested output labels unless the user explicitly wants them included.
 
+Treat pure acknowledgements, greetings, and contextless emoji-only rows as denominator/exclusion candidates, not as ordinary `中性`, unless surrounding context clearly makes them a relevant attitude. Examples such as `了解`, `好的`, `收到`, `知道了`, `早安`, `[捂脸]`, `[呲牙]`, `[玫瑰]`, and `[微笑]` should normally be marked `低信息/不可判断` or `不纳入情感分母`. Short rows with explicit attitude signals, such as `[赞]`, `[强]`, `[爱心]`, `支持`, `赞成`, `反对`, or `不支持`, should be kept and labeled by attitude.
+
 Do not use vague words such as "maybe", "possibly", or "not sure" alone to find ambiguity/review samples; long texts can contain those words while still having a clear stance. Prefer task-specific strategies such as very short context-poor texts, conflicting cues, missing context, weak-rule/model disagreement, or label-specific anchors.
 
 If the user does not provide labels, do not default blindly to positive/neutral/negative. First inspect stratified samples and, if useful, rough clusters from a topic-discovery script. Treat clusters as evidence about common expressions, not as final sentiment labels. Draft labels that match the business question, such as `employment anxiety`, `technical optimism`, `policy demand`, `sarcasm`, `irrelevant/low-information`, or a simpler three-class taxonomy when that is enough.
@@ -75,6 +77,8 @@ When invoked by `data-processing-assistant`, expect the main skill to provide th
 Use `scripts/prepare_text_data.py` to normalize text, hash sensitive source fields, mark short/duplicated rows, and assign stable `row_id`.
 
 Do not remove comments only because they are short. In public-opinion data, short texts such as `[赞]`, `[强]`, `支持`, `赞成`, `点赞`, `反对`, or short complaint phrases can be real attitude signals. The default preparation script does not filter by length. If a task uses `--min-info-len`, keep rows with short attitude signals and record how many short rows were removed or retained.
+
+The preparation script marks contextless acknowledgement or emoji-only candidates with `low_information_candidate`. Use this flag for audit, denominator exclusion, or targeted review. Do not treat the flag as final truth without checking a sample, because some emoji may be meaningful in a specific platform context.
 
 Do not collapse repeated comments silently. Repetition may be spam, but it may also be real public-opinion volume: ten people saying `赞成` should not automatically become one person. Keep all rows by default and add `text_hash` and `duplicate_count`. If an expression-level deduplicated analysis is needed, use a dedupe mode deliberately and report both:
 

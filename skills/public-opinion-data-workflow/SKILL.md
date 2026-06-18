@@ -119,6 +119,8 @@ For public-opinion sentiment tasks, define:
 
 Treat the user's requested labels as final output labels, not as the entire internal analysis schema. For example, when the user asks for `正面/中性/负面`, first decide whether each row is relevant and meaningful. Only relevant/effective rows enter the `正面/中性/负面` denominator. Off-topic, spam, and unusable low-information rows should be counted separately and excluded from the sentiment denominator unless the user explicitly asks to include them.
 
+Do not put pure acknowledgements, greetings, or contextless emoji-only rows into `中性` by default. Examples such as `了解`, `好的`, `收到`, `知道了`, `早安`, `[捂脸]`, `[呲牙]`, `[玫瑰]`, and `[微笑]` are usually `低信息/不可判断` or `不纳入情感分母`. In contrast, short explicit attitude signals such as `[赞]`, `[强]`, `[爱心]`, `支持`, `赞成`, `反对`, and `不支持` should stay in the denominator and receive the corresponding attitude label.
+
 When the task is a new issue, create the taxonomy from evidence:
 
 1. sample across platform/source, time, text length, and likely events;

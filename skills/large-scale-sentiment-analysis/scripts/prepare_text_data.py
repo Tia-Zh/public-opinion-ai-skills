@@ -16,12 +16,15 @@ import pandas as pd
 
 
 LOW_INFO = {
-    "转发了", "转发", "分享", "666", "888", "999", "哈哈", "哈哈哈", "呵呵", "嗯", "哦", "啊",
+    "转发了", "转发", "分享", "666", "888", "999", "哈哈", "哈哈哈", "呵呵", "嗯", "嗯嗯", "哦", "啊",
+    "了解", "好的", "收到", "知道了", "早安", "晚安",
 }
 
 SHORT_ATTITUDE_RE = re.compile(
-    r"(\[[^\]]{1,6}\]|赞|支持|赞成|同意|点赞|强|顶|好评|反对|不同意|不支持|差评|无语|离谱|荒唐|不满|反感)"
+    r"(\[(赞|强|爱心|心|比心|鼓掌|加油|支持|反对|怒|弱|鄙视|吐槽|裂开)\]|"
+    r"赞|支持|赞成|同意|点赞|强|顶|好评|反对|不同意|不支持|差评|无语|离谱|荒唐|不满|反感)"
 )
+BRACKET_TOKEN_RE = re.compile(r"(\[[^\]]{1,8}\]\s*)+")
 
 
 def normalize_text(x):
@@ -44,6 +47,16 @@ def info_len(text):
 
 def has_short_attitude_signal(text):
     return bool(SHORT_ATTITUDE_RE.search(str(text)))
+
+
+def is_low_information_candidate(text):
+    text = str(text).strip()
+    compact = re.sub(r"\s+", "", text)
+    if compact in LOW_INFO:
+        return True
+    if BRACKET_TOKEN_RE.fullmatch(compact) and not has_short_attitude_signal(compact):
+        return True
+    return False
 
 
 def hash_value(x, salt):
@@ -91,6 +104,7 @@ def main():
     df["clean_text"] = df[args.text_col].apply(normalize_text)
     df["info_len"] = df["clean_text"].apply(info_len)
     df["short_attitude_signal"] = df["clean_text"].apply(has_short_attitude_signal)
+    df["low_information_candidate"] = df["clean_text"].apply(is_low_information_candidate)
     df["date"] = pd.to_datetime(df[args.date_col], errors="coerce").dt.date.astype("string") if args.date_col else ""
     df["source"] = df[args.source_col].astype("string") if args.source_col else ""
     df["source_hash"] = df[args.hash_col].apply(lambda x: hash_value(x, args.salt)) if args.hash_col else ""
@@ -98,7 +112,7 @@ def main():
 
     cleaned = df[df["clean_text"].ne("")].copy()
     nonempty_rows = len(cleaned)
-    low_info_mask = cleaned["clean_text"].isin(LOW_INFO) & ~cleaned["short_attitude_signal"]
+    low_info_mask = cleaned["low_information_candidate"] & ~cleaned["short_attitude_signal"]
     low_info_removed = int(low_info_mask.sum()) if args.drop_obvious_low_info else 0
     if args.drop_obvious_low_info:
         cleaned = cleaned[~low_info_mask].copy()
@@ -130,6 +144,7 @@ def main():
         "clean_text",
         "info_len",
         "short_attitude_signal",
+        "low_information_candidate",
         "text_hash",
         "duplicate_count",
         "source_hash",
@@ -142,6 +157,7 @@ def main():
             ["low_info_removed", low_info_removed],
             ["short_removed_by_min_len", short_removed],
             ["short_attitude_rows_kept", short_kept],
+            ["low_information_candidates", int(cleaned["low_information_candidate"].sum())],
             ["prepared_rows", len(cleaned)],
             ["unique_clean_texts", cleaned["clean_text"].nunique()],
             ["duplicate_extra_rows_before_dedupe", duplicate_extra_rows],
