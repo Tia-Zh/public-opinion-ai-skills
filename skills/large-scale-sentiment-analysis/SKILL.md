@@ -7,7 +7,7 @@ description: "当需要处理大规模中文文本、评论、舆情、情感或
 
 Use this skill for large comment, review, survey, post, or public-opinion datasets where labels require semantic judgment but full LLM labeling is too expensive or unstable.
 
-This skill can be called directly, or as the specialist workflow from `data-processing-assistant` when general data processing reaches high-volume or nuanced Chinese sentiment/stance classification.
+This skill can be called directly, or as the specialist workflow from `public-opinion-data-workflow` when general data processing reaches high-volume or nuanced Chinese sentiment/stance classification.
 
 Core method:
 
@@ -70,7 +70,7 @@ Design targeted supplementation per label. Different labels need different candi
 
 ## Workflow
 
-When invoked by `data-processing-assistant`, expect the main skill to provide the input file path, text column, optional source/date/hash columns, proposed labels, and output folder. Return cleaned data, label quality checks, audit samples, charts, and denominator notes so the main skill can package the final workbook/report.
+When invoked by `public-opinion-data-workflow`, expect the main skill to provide the input file path, text column, optional source/date/hash columns, proposed labels, and output folder. Return cleaned data, label quality checks, audit samples, charts, and denominator notes so the main skill can package the final workbook/report.
 
 ### 1. Prepare Data
 
@@ -213,27 +213,14 @@ For each round:
 5. Send selected rows to LLM.
 6. Merge labels, rerun coverage validation, and repeat.
 
-When selecting samples for review, use unique text expressions first so AI effort is not spent repeatedly labeling identical comments. If many rows have the same `text_hash` or `clean_text`, label that expression once, then map the confirmed label back to all duplicate rows through `text_hash` while preserving `duplicate_count` for final volume shares. Review duplicate-heavy expressions separately only when repetition itself may be spam, coordinated behavior, or an important signal.
+Apply these active-learning guardrails:
 
-Active-learning guardrails:
-
-- Deduplicate review batches by text expression before AI labeling; keep volume fields for final statistics.
-- If one label is more than 80% of a newly AI-labeled batch, pause before training. Audit the sampling method, duplicate concentration, label definitions, and missing-class coverage; then supplement underrepresented labels.
-- Do not estimate required rounds by `low-confidence row count / review batch size`.
-- If more than 90% of rows are low-confidence after a round, enter diagnostic mode: check sampling strategy, denominator/exclusion handling, duplicate expressions, confidence threshold, probability calibration, and label coverage before continuing iteration.
-
-Do not use self-training as the default active-learning mechanism. Classifier predictions are not truth labels. Add rows to the training set only after AI semantic labeling or human review confirms them. If pseudo-labeling is used only for an internal experiment, apply all of these guardrails and do not treat it as a deliverable result:
-
-- mark pseudo-labels separately from AI-reviewed labels;
-- cap how many pseudo-labels each class can add per round;
-- keep class additions reasonably balanced, especially for neutral or weak-attitude classes;
-- never let one class expand only because its classifier confidence is high;
-- run an audit batch before the next round and remove pseudo-labels that fail review;
-- stop and review if the class distribution shifts sharply between rounds.
-
-For three-class positive/neutral/negative tasks, treat neutral as a real target class, not a leftover bucket. Neutral samples often have lower confidence because they lack strong sentiment words; this makes them vulnerable to being squeezed into positive or negative during self-training. Include neutral examples in seed samples, targeted supplementation, uncertain batches, and fixed audit sets.
-
-Avoid class starvation. If a target label is absent or nearly absent in the AI-labeled sample, uncertainty sampling alone will not recover it because the classifier has not learned that class. Use weak rules, anchor phrases, keyword candidates, or clustering to find possible examples for that label, then ask the LLM to judge them. Treat weak rules as candidate generators, not final labels.
+- Deduplicate review batches by text expression before AI labeling. If many rows share the same `text_hash` or `clean_text`, label that expression once, then map the confirmed label back to all duplicate rows while preserving `duplicate_count` for volume shares.
+- Do not use self-training as the normal path. Classifier predictions are not truth labels. Add rows to the training set only after AI semantic labeling or human review confirms them.
+- If one label is more than 80% of a newly AI-labeled batch, pause before training. Audit sampling, duplicate concentration, label definitions, and missing-class coverage; then supplement underrepresented labels.
+- For three-class positive/neutral/negative tasks, treat neutral as a real class, not a leftover bucket. Include neutral examples in seed samples, targeted supplementation, uncertain batches, and fixed audit sets.
+- If a target label is absent or nearly absent in the AI-labeled sample, uncertainty sampling alone will not recover it. Use weak rules, anchor phrases, keyword candidates, or clusters to find candidates, then ask AI to judge them. Treat weak rules as candidate generators, not final labels.
+- Do not estimate required rounds by `low-confidence row count / review batch size`. If more than 90% of rows are low-confidence after a round, enter diagnostic mode before continuing: check sampling strategy, denominator/exclusion handling, duplicate expressions, confidence threshold, probability calibration, and label coverage.
 
 For targeted supplementation, use `scripts/make_targeted_samples.py` when a weak label column or keyword map is available. Example:
 
@@ -243,7 +230,7 @@ python scripts/make_targeted_samples.py --input prepared_texts.csv --output-dir 
 
 The keyword CSV may include optional `min_chars` and `max_chars` columns for label-specific strategies, such as short context-poor candidates. The output `targeted_label_candidates.csv` is a review batch, not final labels. Label it with the AI semantic labeling schema, merge confirmed labels, then retrain.
 
-Do not stop because a fixed number of rounds has been reached. Also do not treat low-confidence rows as a backlog that must be exhausted one by one. Active learning is not "clear every uncertain row"; it is "use high-value uncertain rows to test and improve the label boundaries." Stop only when the quality evidence is stable enough for the use case:
+Do not stop because a fixed number of rounds has been reached. Also do not treat low-confidence rows as a backlog that must be exhausted one by one. Active learning uses high-value uncertain rows to test and improve label boundaries. Stop only when the quality evidence is stable enough for the use case:
 
 - the remaining low-confidence/boundary share is understood, sampled, and acceptable for the task;
 - a new AI review batch largely agrees with the classifier's predictions;
@@ -255,13 +242,11 @@ Do not stop because a fixed number of rounds has been reached. Also do not treat
 
 If stopping after only one round, do not call the result final. Label it as an incomplete test run and report the missing review steps.
 
-Treat model confidence as a triage signal, not as calibrated truth. Raw Naive Bayes or logistic-regression probabilities may be overconfident, underconfident, or poorly calibrated for short Chinese comments, emoji-heavy rows, repeated text, and low-information replies. Do not infer that a run needs hundreds of rounds by dividing the number of low-confidence rows by the review batch size. If low-confidence share is high, first diagnose duplicate expressions, low-information rows, threshold settings, probability calibration, label coverage, and sampling strategy. Prefer `top2_margin`, disagreement samples, fixed audit sets, and random audits for quality judgment.
+Treat model confidence as a triage signal, not calibrated truth. Low-confidence rows may remain when the main label distribution is stable, random audits show few clear errors, and low-confidence cases are separately reported or explainable. If low-confidence cases contain many obvious misclassifications or materially change the distribution after audit, continue schema refinement, targeted sampling, or review.
 
 If a predicted distribution drops plausible labels to zero, do not accept it silently. Check labeled-sample coverage first. A zero or near-zero category often means the active-learning sample missed that class, not that the class is absent in the data.
 
-If an exclusion or low-information bucket becomes unusually large, especially with low confidence, do not accept it silently. Audit that bucket before reporting. A high low-information share may mean the classifier is dumping hard-to-classify but relevant texts into the exclusion bucket. Sample low-confidence exclusion predictions and relevant-looking exclusion predictions, correct labels, and retrain if many are actually relevant.
-
-After each AI-labeled sample batch, inspect the label distribution before training. If a three-class batch becomes extremely imbalanced, such as almost all negative or almost no neutral, do not proceed as if it were high-quality training data. First audit whether the imbalance comes from true sampling, rule-based pseudo-labeling, unclear label definitions, missing neutral examples, or systematic misunderstanding. The correct response is targeted supplementation and review, not immediate training.
+If an exclusion or low-information bucket becomes unusually large, especially with low confidence, do not accept it silently. Audit that bucket before reporting. A high low-information share may mean the classifier is dumping hard-to-classify but relevant texts into the exclusion bucket.
 
 If a negative or positive class becomes unusually large, audit before reporting. In Chinese public comments, questions, rhetorical questions, policy demands, and off-topic demands are often misread as negative because they contain words such as `不`, `取消`, `降`, `不好`, or question marks. Sample and review:
 
@@ -273,9 +258,7 @@ If a negative or positive class becomes unusually large, audit before reporting.
 
 Do not continue iterative training when a transition matrix shows one class absorbing many rows from another class without review. Build a small fixed audit set at the beginning and score it after every round. If stable audit rows drift in one direction, pause, review changed cases, add confirmed corrections, and retrain.
 
-Low-confidence rows are allowed to remain. Do not force them into high-confidence positive/neutral/negative conclusions just to make the chart look complete. If many rows remain low-confidence or marked `needs_review`, sample and explain them: are they repeated expressions, low-information replies, off-topic rows, true boundary cases, or an overly strict threshold? When the main label distribution is stable, random audits show few clear errors, and low-confidence cases are either separately reported or concentrated in explainable buckets, the run may be usable with an uncertainty note. When low-confidence cases contain many obvious misclassifications or materially change the distribution after audit, continue schema refinement, targeted sampling, or review. Low-confidence share alone is not a valid stopping or failure criterion.
-
-### 5a. Output Discipline
+### Output Discipline
 
 During active-learning iterations, keep outputs lean:
 
@@ -285,7 +268,7 @@ During active-learning iterations, keep outputs lean:
 - For datasets above 50,000 rows, keep full predictions as CSV unless the user explicitly asks for full Excel.
 - Do not present a one-round result as the main deliverable if a second-round review is still pending. First show the next review batch and quality status.
 
-### 5c. Windows And File Handling Guardrails
+### Windows And File Handling Guardrails
 
 On Windows or mixed Git Bash/PowerShell environments:
 
@@ -295,7 +278,7 @@ On Windows or mixed Git Bash/PowerShell environments:
 - After CSV round-trips, explicitly normalize important grouping columns such as year/date/source to string before filtering or grouping.
 - For full predictions above 50,000 rows, write CSV. Put only summaries and samples in Excel.
 
-### 5b. Optional Reference-Label Evaluation
+### Optional Reference-Label Evaluation
 
 If the dataset already has a historical or manual label column, use `scripts/compare_labels.py` after generating predictions. Treat the reference column as a test aid, not automatic truth. Report agreement rate, confusion matrix, and disagreement samples. Skip this step when no reference label exists.
 
