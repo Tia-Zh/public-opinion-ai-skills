@@ -236,9 +236,9 @@ python scripts/make_targeted_samples.py --input prepared_texts.csv --output-dir 
 
 The keyword CSV may include optional `min_chars` and `max_chars` columns for label-specific strategies, such as short context-poor candidates. The output `targeted_label_candidates.csv` is a review batch, not final labels. Label it with the AI semantic labeling schema, merge confirmed labels, then retrain.
 
-Do not stop because a fixed number of rounds has been reached. Stop only when one of these is true:
+Do not stop because a fixed number of rounds has been reached. Also do not treat low-confidence rows as a backlog that must be exhausted one by one. Active learning is not "clear every uncertain row"; it is "use high-value uncertain rows to test and improve the label boundaries." Stop only when the quality evidence is stable enough for the use case:
 
-- the remaining low-confidence/boundary share is small enough for the task;
+- the remaining low-confidence/boundary share is understood, sampled, and acceptable for the task;
 - a new AI review batch largely agrees with the classifier's predictions;
 - the full-data label distribution changes only slightly between rounds;
 - random audit samples show few obvious errors;
@@ -248,7 +248,7 @@ Do not stop because a fixed number of rounds has been reached. Stop only when on
 
 If stopping after only one round, do not call the result final. Label it as an incomplete test run and report the missing review steps.
 
-Treat raw Naive Bayes probabilities with caution. If `fast-nb` produces very high confidence values, do not interpret them as calibrated accuracy. Prefer `top2_margin`, disagreement samples, and random audits for uncertainty selection.
+Treat model confidence as a triage signal, not as calibrated truth. Raw Naive Bayes or logistic-regression probabilities may be overconfident, underconfident, or poorly calibrated for short Chinese comments, emoji-heavy rows, repeated text, and low-information replies. Do not infer that a run needs hundreds of rounds by dividing the number of low-confidence rows by the review batch size. If low-confidence share is high, first diagnose duplicate expressions, low-information rows, threshold settings, probability calibration, label coverage, and sampling strategy. Prefer `top2_margin`, disagreement samples, fixed audit sets, and random audits for quality judgment.
 
 If a predicted distribution drops plausible labels to zero, do not accept it silently. Check labeled-sample coverage first. A zero or near-zero category often means the active-learning sample missed that class, not that the class is absent in the data.
 
@@ -266,7 +266,7 @@ If a negative or positive class becomes unusually large, audit before reporting.
 
 Do not continue iterative training when a transition matrix shows one class absorbing many rows from another class without review. Build a small fixed audit set at the beginning and score it after every round. If stable audit rows drift in one direction, pause, review changed cases, add confirmed corrections, and retrain.
 
-If most full-data predictions remain low-confidence or marked `needs_review`, do not deliver the class distribution as a final result. As a practical quality gate, if more than 30-40% of rows are below the chosen confidence/margin threshold after a review round, treat the run as not converged: add more AI-reviewed samples, improve the label schema, review failure modes, or ask the user to narrow the task. A run with 90%+ low-confidence rows is a process diagnostic, not a usable sentiment result.
+Low-confidence rows are allowed to remain. Do not force them into high-confidence positive/neutral/negative conclusions just to make the chart look complete. If many rows remain low-confidence or marked `needs_review`, sample and explain them: are they repeated expressions, low-information replies, off-topic rows, true boundary cases, or an overly strict threshold? When the main label distribution is stable, random audits show few clear errors, and low-confidence cases are either separately reported or concentrated in explainable buckets, the run may be usable with an uncertainty note. When low-confidence cases contain many obvious misclassifications or materially change the distribution after audit, continue schema refinement, targeted sampling, or review. Low-confidence share alone is not a valid stopping or failure criterion.
 
 ### 5a. Output Discipline
 

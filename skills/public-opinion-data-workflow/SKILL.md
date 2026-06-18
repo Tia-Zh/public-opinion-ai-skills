@@ -105,7 +105,7 @@ For large subjective datasets, avoid tiny seed samples but do not overload the c
 
 When selecting uncertain samples for review, prefer unique text expressions first and preserve `duplicate_count` or equivalent volume fields. This avoids spending review effort on repeated identical wording while still allowing repeated comments to count in the final volume denominator.
 
-If most rows remain low-confidence or marked for review after a round, do not deliver the class distribution as final. A run with more than 30-40% low-confidence rows needs more AI-reviewed samples, schema refinement, or failure-mode review; a run with 90%+ low-confidence rows is diagnostic only.
+Low-confidence rows do not need to be eliminated. Treat confidence as a triage signal, not calibrated truth. If many rows remain low-confidence or marked for review, first diagnose repeated expressions, low-information rows, threshold settings, probability calibration, label coverage, and sampling strategy. Do not estimate required rounds by dividing low-confidence row count by review batch size. A run can be usable when the main distribution is stable, audit samples show few clear errors, and remaining low-confidence cases are separately reported or explainable. If low-confidence cases contain many obvious misclassifications or change the distribution materially after audit, continue targeted sampling or schema refinement.
 
 ## Label Taxonomy Guidance
 

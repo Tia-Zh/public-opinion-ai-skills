@@ -42,12 +42,14 @@ When reference labels do not exist, generate:
 
 Minimum output files are not the same as convergence. For sentiment, stance, or public-opinion classification, treat the result as converged only when:
 
-- the remaining low-confidence and boundary share is acceptable for the task;
+- the remaining low-confidence and boundary share is understood, sampled, and acceptable for the task;
 - a new AI-reviewed audit batch largely agrees with classifier predictions;
 - full-data label shares no longer move sharply between rounds;
 - random per-class audits show few obvious mistakes;
 - key labels no longer repeatedly confuse with each other;
 - each final report label has enough AI-reviewed examples, or has been merged/removed with a documented reason.
+
+Low-confidence rows are not a backlog to clear. Do not infer the number of required rounds by dividing low-confidence row count by review batch size. A high low-confidence share is a diagnostic signal: inspect duplicate expressions, low-information rows, threshold settings, probability calibration, label coverage, and sampling strategy. Remaining low-confidence rows may be reported as uncertainty when audits show they do not materially change the main distribution.
 
 The denominator chain, label distribution, and audit samples are required evidence. They prove the process is traceable, but they do not prove convergence until the audit results are reviewed. If the user asks to stop before these checks pass, mark the run as stopped early or diagnostic rather than final.
 

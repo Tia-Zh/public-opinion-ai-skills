@@ -4,7 +4,7 @@ Use this when writing a report methodology section.
 
 ## Recommended Method Wording
 
-This study used a large-model-assisted, auditable classification workflow. First, raw comments were cleaned and de-identified while preserving the volume denominator; duplicate texts were marked with hash/count fields and, when needed, analyzed separately as a deduplicated expression view. A stable label taxonomy was then defined. A large model labeled stratified and uncertainty-selected samples to establish category boundaries. Based on those labeled samples, an automatic classifier was calibrated and applied to the full cleaned dataset. Low-confidence, uncertain, sarcasm-like, and randomly sampled cases were reviewed to improve reliability.
+This study used a large-model-assisted, auditable classification workflow. First, raw comments were cleaned and de-identified while preserving the volume denominator; duplicate texts were marked with hash/count fields and, when needed, analyzed separately as a deduplicated expression view. A stable label taxonomy was then defined. A large model labeled stratified and uncertainty-selected samples to establish category boundaries. Based on those labeled samples, an automatic classifier was calibrated and applied to the full cleaned dataset. Low-confidence, uncertain, sarcasm-like, and randomly sampled cases were reviewed to improve reliability. Remaining low-confidence cases, if any, were treated as uncertainty to be sampled, explained, or separately reported rather than as rows that must all be manually cleared.
 
 ## Chinese Report Wording
 

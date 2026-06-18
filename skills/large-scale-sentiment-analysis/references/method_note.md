@@ -4,7 +4,7 @@ Use this when writing a report methodology section.
 
 ## Recommended Method Wording
 
-This study used a large-model-assisted, auditable classification workflow. First, raw comments were cleaned and de-identified while preserving the volume denominator; duplicate texts were marked with hash/count fields and, when needed, analyzed separately as a deduplicated expression view. A stable label taxonomy was then defined. A large model labeled hybrid stratified and uncertainty-selected samples to establish category boundaries. Based on those labeled samples, an automatic classifier was calibrated and applied to the full cleaned dataset. Low-confidence, boundary, sarcasm-like, and randomly sampled cases were reviewed. Label definitions, targeted samples, and classifier calibration were iterated until the quality signals were stable enough for the task.
+This study used a large-model-assisted, auditable classification workflow. First, raw comments were cleaned and de-identified while preserving the volume denominator; duplicate texts were marked with hash/count fields and, when needed, analyzed separately as a deduplicated expression view. A stable label taxonomy was then defined. A large model labeled hybrid stratified and uncertainty-selected samples to establish category boundaries. Based on those labeled samples, an automatic classifier was calibrated and applied to the full cleaned dataset. Low-confidence, boundary, sarcasm-like, and randomly sampled cases were reviewed. Label definitions, targeted samples, and classifier calibration were iterated until the quality signals were stable enough for the task. Remaining low-confidence cases, if any, were treated as uncertainty to be sampled, explained, or separately reported rather than as rows that must all be manually cleared.
 
 ## Chinese Report Wording
 
@@ -14,12 +14,14 @@ This study used a large-model-assisted, auditable classification workflow. First
 
 When reporting a final result, state that convergence was judged from multiple quality signals:
 
-- low-confidence and boundary share;
+- whether the remaining low-confidence and boundary cases were sampled and explainable;
 - agreement between AI-reviewed audit samples and classifier predictions;
 - stability of label distribution across rounds;
 - random audit error patterns;
 - confusion among important categories;
 - coverage of AI-reviewed examples for every final report label.
+
+Do not calculate required active-learning rounds by dividing the number of low-confidence rows by the review batch size. Low confidence is a triage signal and may reflect threshold settings, probability calibration, repeated expressions, low-information text, or genuinely ambiguous comments.
 
 If the workflow stops before these checks pass, describe the output as an interim test or diagnostic run, not a final converged result.
 
