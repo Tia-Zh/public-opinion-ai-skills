@@ -64,8 +64,11 @@ Use scripts in `scripts/sentiment/`:
 - `prepare_text_data.py`: clean, hash sensitive fields, mark duplicates, and create stable `row_id`.
 - `make_llm_batches.py`: create hybrid stratified AI-labeling samples and batch payloads.
 - `merge_labels.py`: validate and merge AI labels.
+- `audit_active_learning_batch.py`: check label imbalance and duplicate concentration in newly labeled batches.
 - `train_text_classifier.py`: train a lightweight classifier from AI-reviewed labels and score confidence/margins.
 - `select_uncertain.py`: select uncertain, low-confidence, sarcasm-like, and random audit rows.
+- `propagate_duplicate_labels.py`: map labels from unique reviewed expressions back to repeated rows.
+- `diagnose_predictions.py`: summarize low-confidence, margin, label, and duplicate health before continuing iteration.
 - `build_summary_charts.py`: create monthly structure charts and denominator tables.
 - `compare_labels.py`: optional evaluation when a reference label column already exists.
 
@@ -77,7 +80,7 @@ Recommended process:
 4. Generate a hybrid stratified seed sample rather than sending every row to AI. Prefer platform/source and text-length coverage when available; use date/event strata only when useful and reliable.
 5. Ask AI to label the sample with `row_id,label,confidence,reason,is_sarcasm`.
 6. Merge and validate labels before training.
-7. Validate label coverage: every final report label should have enough AI-reviewed examples before training, with a practical default of at least 20-30 examples per label.
+7. Audit batch health and validate label coverage: every final report label should have enough AI-reviewed examples before training, with a practical default of at least 20-30 examples per label.
 8. Train/calibrate the classifier and score all cleaned rows.
 9. Select low-confidence, boundary, sarcasm-like, and random samples for another review round.
 10. Repeat until label distribution and audit consistency are stable enough for the use case.
@@ -106,6 +109,8 @@ For large subjective datasets, avoid tiny seed samples but do not overload the c
 When selecting uncertain samples for review, use unique text expressions first and preserve `duplicate_count` or equivalent volume fields. If many rows have the same `text_hash` or `clean_text`, label that expression once, then map the confirmed label back to all duplicate rows. This avoids spending review effort on repeated identical wording while still allowing repeated comments to count in the final volume denominator.
 
 Active-learning guardrails: if one label is more than 80% of a newly AI-labeled batch, pause before training and audit sampling, duplicates, label definitions, and missing-class coverage. Do not estimate required rounds by `low-confidence row count / review batch size`. If more than 90% of rows are low-confidence after a round, first diagnose sampling strategy, denominator/exclusion handling, duplicate expressions, confidence threshold, probability calibration, and label coverage.
+
+Use the bundled scripts for these guardrails: `audit_active_learning_batch.py` before training on a new batch, `propagate_duplicate_labels.py` after labeling unique duplicate expressions, and `diagnose_predictions.py` when low-confidence share is high or a run appears stuck.
 
 Low-confidence rows do not need to be eliminated. Treat confidence as a triage signal, not calibrated truth. If many rows remain low-confidence or marked for review, first diagnose repeated expressions, low-information rows, threshold settings, probability calibration, label coverage, and sampling strategy. Do not estimate required rounds by dividing low-confidence row count by review batch size. A run can be usable when the main distribution is stable, audit samples show few clear errors, and remaining low-confidence cases are separately reported or explainable. If low-confidence cases contain many obvious misclassifications or change the distribution materially after audit, continue targeted sampling or schema refinement.
 

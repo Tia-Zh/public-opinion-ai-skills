@@ -156,6 +156,8 @@ Never proceed to charts before row_id coverage is checked.
 
 Before training, validate that the AI-reviewed sample covers every final report label. Use `scripts/validate_label_coverage.py` after merging labels. As a practical default, require at least 20-30 AI-reviewed examples per final label before treating the classifier result as meaningful; use more examples for subtle or easily confused labels such as neutral, criticism, sarcasm, or policy demands.
 
+Use `scripts/audit_active_learning_batch.py` before training on each new AI-labeled batch. It checks whether one label dominates the batch and whether duplicate expressions consumed too many review slots.
+
 Example:
 
 ```powershell
@@ -211,7 +213,7 @@ For each round:
    - question/反问-like rows, such as `?`, `？`, `吗`, `难道`, `不好吗`, or `哪里不好`;
    - random audit sample.
 5. Send selected rows to LLM.
-6. Merge labels, rerun coverage validation, and repeat.
+6. Merge labels, audit batch health, rerun coverage validation, and repeat.
 
 Apply these active-learning guardrails:
 
@@ -221,6 +223,10 @@ Apply these active-learning guardrails:
 - For three-class positive/neutral/negative tasks, treat neutral as a real class, not a leftover bucket. Include neutral examples in seed samples, targeted supplementation, uncertain batches, and fixed audit sets.
 - If a target label is absent or nearly absent in the AI-labeled sample, uncertainty sampling alone will not recover it. Use weak rules, anchor phrases, keyword candidates, or clusters to find candidates, then ask AI to judge them. Treat weak rules as candidate generators, not final labels.
 - Do not estimate required rounds by `low-confidence row count / review batch size`. If more than 90% of rows are low-confidence after a round, enter diagnostic mode before continuing: check sampling strategy, denominator/exclusion handling, duplicate expressions, confidence threshold, probability calibration, and label coverage.
+
+Use `scripts/propagate_duplicate_labels.py` when a deduplicated review batch has been labeled and you need to map those confirmed labels back to all duplicate rows.
+
+Use `scripts/diagnose_predictions.py` after scoring full data when low-confidence share is high or a run appears stuck. Use its output to decide whether to adjust sampling, denominator/exclusions, duplicate handling, thresholds, calibration, or label coverage before another iteration.
 
 For targeted supplementation, use `scripts/make_targeted_samples.py` when a weak label column or keyword map is available. Example:
 
@@ -327,8 +333,11 @@ Bundled scripts are starting points. Patch column names and label lists for the 
 - `scripts/make_llm_batches.py`: create hybrid stratified AI-labeling batch files and a prompt.
 - `scripts/merge_labels.py`: merge labels and validate row_id coverage.
 - `scripts/validate_label_coverage.py`: check whether each final label has enough AI-reviewed examples before training.
+- `scripts/audit_active_learning_batch.py`: check label imbalance and duplicate concentration in a new AI-labeled batch.
 - `scripts/train_text_classifier.py`: train a lightweight classifier from AI-reviewed labels and score confidence/margins.
 - `scripts/select_uncertain.py`: select low-confidence and boundary samples, deduplicating review text expressions by default while preserving volume fields.
+- `scripts/propagate_duplicate_labels.py`: map labels from unique reviewed expressions back to all duplicate rows.
+- `scripts/diagnose_predictions.py`: summarize low-confidence, margin, label, and duplicate health before continuing iteration.
 - `scripts/make_targeted_samples.py`: create targeted review batches for underrepresented labels using weak labels or keyword candidates.
 - `scripts/build_summary_charts.py`: create summary tables and monthly charts.
 - `scripts/compare_labels.py`: compare predictions with an existing reference label column when available.
