@@ -46,7 +46,18 @@ def info_len(text):
     return len(t)
 
 
+def is_emoji_only(text):
+    compact = re.sub(r"\s+", "", str(text).strip())
+    if not compact:
+        return False
+    if BRACKET_TOKEN_RE.fullmatch(compact):
+        return True
+    return info_len(compact) == 0
+
+
 def has_short_attitude_signal(text):
+    if is_emoji_only(text):
+        return False
     return bool(SHORT_ATTITUDE_RE.search(str(text)))
 
 
@@ -55,9 +66,7 @@ def is_low_information_candidate(text):
     compact = re.sub(r"\s+", "", text)
     if compact in LOW_INFO:
         return True
-    if BRACKET_TOKEN_RE.fullmatch(compact) and not has_short_attitude_signal(compact):
-        return True
-    if info_len(compact) == 0 and compact and not has_short_attitude_signal(compact):
+    if is_emoji_only(compact):
         return True
     return False
 
@@ -92,6 +101,11 @@ def main():
         help="Drop a very small set of obvious non-attitude rows such as forwarding markers.",
     )
     ap.add_argument(
+        "--keep-emoji-only",
+        action="store_true",
+        help="Keep rows that contain only emoji or bracketed platform emoji. Default removes them from prepared_texts and logs the count.",
+    )
+    ap.add_argument(
         "--dedupe-mode",
         choices=["none", "exact-text", "source-date-text"],
         default="none",
@@ -106,6 +120,7 @@ def main():
     raw_rows = len(df)
     df["clean_text"] = df[args.text_col].apply(normalize_text)
     df["info_len"] = df["clean_text"].apply(info_len)
+    df["emoji_only_candidate"] = df["clean_text"].apply(is_emoji_only)
     df["short_attitude_signal"] = df["clean_text"].apply(has_short_attitude_signal)
     df["low_information_candidate"] = df["clean_text"].apply(is_low_information_candidate)
     df["date"] = pd.to_datetime(df[args.date_col], errors="coerce").dt.date.astype("string") if args.date_col else ""
@@ -115,6 +130,13 @@ def main():
 
     cleaned = df[df["clean_text"].ne("")].copy()
     nonempty_rows = len(cleaned)
+    emoji_only_removed = 0
+    if not args.keep_emoji_only:
+        emoji_only_mask = cleaned["emoji_only_candidate"]
+        emoji_only_removed = int(emoji_only_mask.sum())
+        if emoji_only_removed:
+            cleaned.loc[emoji_only_mask].to_csv(out_dir / "removed_emoji_only_rows.csv", index=False, encoding="utf-8-sig")
+            cleaned = cleaned[~emoji_only_mask].copy()
     low_info_mask = cleaned["low_information_candidate"] & ~cleaned["short_attitude_signal"]
     low_info_removed = int(low_info_mask.sum()) if args.drop_obvious_low_info else 0
     if args.drop_obvious_low_info:
@@ -146,6 +168,7 @@ def main():
         "date",
         "clean_text",
         "info_len",
+        "emoji_only_candidate",
         "short_attitude_signal",
         "low_information_candidate",
         "text_hash",
@@ -158,6 +181,8 @@ def main():
             ["raw_rows", raw_rows],
             ["nonempty_rows", nonempty_rows],
             ["low_info_removed", low_info_removed],
+            ["emoji_only_removed", emoji_only_removed],
+            ["keep_emoji_only", args.keep_emoji_only],
             ["short_removed_by_min_len", short_removed],
             ["short_attitude_rows_kept", short_kept],
             ["low_information_candidates", int(cleaned["low_information_candidate"].sum())],
