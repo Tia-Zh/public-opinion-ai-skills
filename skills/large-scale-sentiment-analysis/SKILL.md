@@ -170,13 +170,21 @@ If coverage fails, do not train as if the sample is ready. Run targeted suppleme
 
 Train or calibrate a classifier from AI-labeled samples and use probabilities as uncertainty. Do not replace this step with pure keyword classification. If the classifier cannot run, stop and report the blocker or ask to install dependencies; do not produce a final sentiment result from keyword rules.
 
-Before training on large datasets, run:
+Before training on large datasets, first reuse an existing working Python environment instead of reinstalling packages in every new agent session. Run:
+
+```powershell
+python scripts/find_python_environment.py
+```
+
+If the script finds a `best_python`, use that exact executable or command for later scripts. Do not stay in a managed or temporary Python environment that is missing packages when another local Python already has them.
+
+Then check dependencies in the selected environment:
 
 ```powershell
 python scripts/check_dependencies.py
 ```
 
-If recommended packages are missing, ask the user whether to install them. Do not install dependencies silently. If the user agrees, run:
+`pandas` is a core dependency for reading, cleaning, merging, and exporting tabular data. `openpyxl` is needed for Excel files. `scikit-learn` is the recommended classifier backend. If any core or recommended package is missing in all usable Python environments, ask the user whether to install it. Do not install dependencies silently. If the user agrees, run:
 
 ```powershell
 python scripts/install_optional_dependencies.py

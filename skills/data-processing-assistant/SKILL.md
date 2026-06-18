@@ -73,6 +73,8 @@ Otherwise, make a reasonable assumption, state it briefly, and continue.
 
 Use bundled scripts when they fit; patch or extend them for the user's exact task when needed.
 
+Before running scripts, reuse an existing Python environment that already has the needed packages instead of reinstalling in every new session. For table work, `pandas` is the core dependency and `openpyxl` is needed for Excel read/write. If the current environment is missing them, check other available Python commands such as `python`, `python3`, or `py` before asking the user to install packages. Only install packages after user approval.
+
 - `scripts/inspect_tabular.py`: inspect Excel/CSV/TSV files and produce a schema summary.
 - `scripts/process_tabular.py`: run configurable cleaning, merging, filtering, duplicate marking or optional dedupe, and export.
 - `scripts/make_charts.py`: generate common charts from processed tables.

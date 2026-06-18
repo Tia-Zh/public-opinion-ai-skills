@@ -3,7 +3,16 @@ import json
 import sys
 
 
-OPTIONAL_PACKAGES = [
+REQUIRED_PACKAGES = [
+    {
+        "pip_name": "pandas",
+        "import_name": "pandas",
+        "purpose": "read, clean, merge, and export tabular data",
+        "required": True,
+    },
+]
+
+RECOMMENDED_PACKAGES = [
     {
         "pip_name": "scikit-learn",
         "import_name": "sklearn",
@@ -16,33 +25,41 @@ OPTIONAL_PACKAGES = [
         "purpose": "read/write Excel workbooks",
         "recommended": True,
     },
+]
+
+OPTIONAL_PACKAGES = [
     {
         "pip_name": "matplotlib",
         "import_name": "matplotlib",
         "purpose": "generate summary charts",
-        "recommended": False,
+        "optional": True,
     },
 ]
 
 
 def main():
     rows = []
-    missing = []
-    for package in OPTIONAL_PACKAGES:
+    required_missing = []
+    recommended_missing = []
+    for package in REQUIRED_PACKAGES + RECOMMENDED_PACKAGES + OPTIONAL_PACKAGES:
         available = importlib.util.find_spec(package["import_name"]) is not None
         row = {
             **package,
             "available": available,
         }
         rows.append(row)
-        if package["recommended"] and not available:
-            missing.append(package["pip_name"])
+        if package.get("required") and not available:
+            required_missing.append(package["pip_name"])
+        if package.get("recommended") and not available:
+            recommended_missing.append(package["pip_name"])
 
+    install_packages = required_missing + recommended_missing
     result = {
         "python": sys.executable,
         "packages": rows,
-        "recommended_missing": missing,
-        "install_command": f"{sys.executable} -m pip install " + " ".join(missing) if missing else "",
+        "required_missing": required_missing,
+        "recommended_missing": recommended_missing,
+        "install_command": f"{sys.executable} -m pip install " + " ".join(install_packages) if install_packages else "",
     }
     print(json.dumps(result, ensure_ascii=False, indent=2))
 

@@ -61,6 +61,9 @@ Core requirements:
 
 Use scripts in `scripts/sentiment/`:
 
+- `find_python_environment.py`: find an existing local Python environment with the needed packages before installing anything.
+- `check_dependencies.py`: check current Python for core and recommended packages.
+- `install_optional_dependencies.py`: install core/recommended packages only after user approval.
 - `prepare_text_data.py`: clean, hash sensitive fields, mark duplicates, and create stable `row_id`.
 - `make_llm_batches.py`: create hybrid stratified AI-labeling samples and batch payloads.
 - `merge_labels.py`: validate and merge AI labels.
@@ -74,17 +77,19 @@ Use scripts in `scripts/sentiment/`:
 
 Recommended process:
 
-1. If labels are provided, rewrite them into a compact taxonomy with definitions, inclusion/exclusion rules, examples, and edge cases.
-2. If labels are not provided, create an exploratory sample and optionally run `discover_topics.py`; use clusters and keyword summaries only as evidence for drafting attitude/sentiment labels, not as final labels.
-3. Confirm the label taxonomy before large-scale labeling.
-4. Generate a hybrid stratified seed sample rather than sending every row to AI. Prefer platform/source and text-length coverage when available; use date/event strata only when useful and reliable.
-5. Ask AI to label the sample with `row_id,label,confidence,reason,is_sarcasm`.
-6. Merge and validate labels before training.
-7. Audit batch health and validate label coverage: every final report label should have enough AI-reviewed examples before training, with a practical default of at least 20-30 examples per label.
-8. Train/calibrate the classifier and score all cleaned rows.
-9. Select low-confidence, boundary, sarcasm-like, and random samples for another review round.
-10. Repeat until label distribution and audit consistency are stable enough for the use case.
-11. Generate final tables, charts, and method notes.
+1. Reuse an existing working Python environment. Run `python scripts/sentiment/find_python_environment.py`; if it finds a `best_python`, use that executable or command for later scripts.
+2. Check dependencies with `python scripts/sentiment/check_dependencies.py`. `pandas` is a core dependency for tabular processing, `openpyxl` is needed for Excel, and `scikit-learn` is the recommended classifier backend. If packages are missing from every usable Python environment, ask the user before running `python scripts/sentiment/install_optional_dependencies.py`.
+3. If labels are provided, rewrite them into a compact taxonomy with definitions, inclusion/exclusion rules, examples, and edge cases.
+4. If labels are not provided, create an exploratory sample and optionally run `discover_topics.py`; use clusters and keyword summaries only as evidence for drafting attitude/sentiment labels, not as final labels.
+5. Confirm the label taxonomy before large-scale labeling.
+6. Generate a hybrid stratified seed sample rather than sending every row to AI. Prefer platform/source and text-length coverage when available; use date/event strata only when useful and reliable.
+7. Ask AI to label the sample with `row_id,label,confidence,reason,is_sarcasm`.
+8. Merge and validate labels before training.
+9. Audit batch health and validate label coverage: every final report label should have enough AI-reviewed examples before training, with a practical default of at least 20-30 examples per label.
+10. Train/calibrate the classifier and score all cleaned rows.
+11. Select low-confidence, boundary, sarcasm-like, and random samples for another review round.
+12. Repeat until label distribution and audit consistency are stable enough for the use case.
+13. Generate final tables, charts, and method notes.
 
 Do not claim that every row was AI-labeled unless every row was actually sent to AI. If using the bundled classifier, describe it as classifier migration from AI-reviewed samples, not as full-row AI labeling.
 

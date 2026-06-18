@@ -1,10 +1,26 @@
 import argparse
+import importlib.util
 import subprocess
 import sys
 
 
-RECOMMENDED = ["scikit-learn", "openpyxl"]
+CORE = ["pandas", "openpyxl"]
+RECOMMENDED = ["scikit-learn"]
 CHARTS = ["matplotlib"]
+
+
+IMPORT_NAMES = {
+    "scikit-learn": "sklearn",
+}
+
+
+def missing_packages(packages):
+    missing = []
+    for package in packages:
+        import_name = IMPORT_NAMES.get(package, package.replace("-", "_"))
+        if importlib.util.find_spec(import_name) is None:
+            missing.append(package)
+    return missing
 
 
 def main():
@@ -19,13 +35,23 @@ def main():
         action="store_true",
         help="print the install command without running it",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="install even if packages appear to be available",
+    )
     args = parser.parse_args()
 
-    packages = list(RECOMMENDED)
+    packages = list(CORE) + list(RECOMMENDED)
     if args.include_charts:
         packages.extend(CHARTS)
 
-    command = [sys.executable, "-m", "pip", "install", *packages]
+    install_packages = packages if args.force else missing_packages(packages)
+    if not install_packages:
+        print("all requested packages already available; nothing to install", flush=True)
+        return
+
+    command = [sys.executable, "-m", "pip", "install", *install_packages]
     print(" ".join(command), flush=True)
     if args.dry_run:
         return
