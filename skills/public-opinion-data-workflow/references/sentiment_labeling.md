@@ -10,7 +10,7 @@ Use three output labels unless the user provides another report label set:
 - `中立`: relevant factual description, objective question, balanced discussion, or relevant comment with no clear positive/negative direction.
 - `负面`: complaint, dissatisfaction, anger, worry, fear, accusation, sarcasm, distrust, grief, urgency, or criticism.
 
-These are final output labels, not the full internal processing schema. Before assigning them, decide whether the row is relevant to the user's topic and meaningful enough to enter the denominator.
+These are final output labels, not the full internal processing schema. They do not mean every row must be forced into one of the three labels. Before assigning them, decide whether the row is relevant to the user's topic and meaningful enough to enter the denominator.
 
 Use internal flags or labels when needed:
 
@@ -18,9 +18,11 @@ Use internal flags or labels when needed:
 - `低信息/不可判断`: empty, contextless, unusable, or pure signal where relevance cannot be established.
 - `需复核`: conflicting cues, unclear target, low confidence, or model/human disagreement.
 
-Report these separately. Do not force them into `中立` unless the user explicitly asks for every row to receive one of the output labels.
+Report these separately. Do not force them into `中立` unless the user explicitly asks for every row to receive one of the output labels. If the user says "输出正面/中性/负面", treat that as the final sentiment distribution for effective rows; still create separate relevance/effectiveness or exclusion fields for off-topic, spam, and low-information rows.
 
 Short text is not deleted for being short; separate it into explicit attitude signals and low-information candidates. Explicit attitude signals enter the sentiment denominator. Low-information candidates are counted separately, sampled for review, and not forced into `中立` by default. Common low-information examples include pure acknowledgements or greetings such as `了解`, `好的`, `收到`, `知道了`, `早安`, and emoji-only rows such as `[捂脸]`, `[呲牙]`, `[玫瑰]`, `[微笑]` when no surrounding text establishes an attitude. These should usually be excluded from the sentiment denominator or sent to review, not counted as `中立`. Short explicit attitude signals such as `[赞]`, `[强]`, `[爱心]`, `支持`, `赞成`, `反对`, and `不支持` are meaningful and should be labeled by attitude.
+
+Do not strip emoji or bracketed emoji during the first cleaning step. Preserve them for labeling because some are explicit attitude signals and others are useful low-information candidates. Remove or exclude emoji-only rows only after counting and sampling the low-information bucket, not silently during text normalization.
 
 ## Judgment Rules
 

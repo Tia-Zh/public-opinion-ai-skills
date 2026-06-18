@@ -80,6 +80,8 @@ Do not remove comments only because they are short. Short text is not deleted fo
 
 The preparation script marks contextless acknowledgement or emoji-only candidates with `low_information_candidate`. Use this flag for audit, denominator exclusion, or targeted review. Do not treat the flag as final truth without checking a sample, because some emoji may be meaningful in a specific platform context.
 
+Do not strip emoji or bracketed emoji during initial cleaning. Preserve them so explicit attitude signals can be counted and contextless emoji-only rows can be audited as low-information candidates. Exclude them from the sentiment denominator only after they have been counted and sampled.
+
 Do not collapse repeated comments silently. Repetition may be spam, but it may also be real public-opinion volume: ten people saying `赞成` should not automatically become one person. Keep all rows by default and add `text_hash` and `duplicate_count`. If an expression-level deduplicated analysis is needed, use a dedupe mode deliberately and report both:
 
 - volume denominator: repeated comments counted as repeated voices;

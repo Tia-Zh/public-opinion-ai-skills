@@ -22,6 +22,7 @@ LOW_INFO = {
 
 SHORT_ATTITUDE_RE = re.compile(
     r"(\[(赞|强|爱心|心|比心|鼓掌|加油|支持|反对|怒|弱|鄙视|吐槽|裂开)\]|"
+    r"[👍👎❤❤️💪👏🙌✅❌😡🤬💔]|"
     r"赞|支持|赞成|同意|点赞|强|顶|好评|反对|不同意|不支持|差评|无语|离谱|荒唐|不满|反感)"
 )
 BRACKET_TOKEN_RE = re.compile(r"(\[[^\]]{1,8}\]\s*)+")
@@ -55,6 +56,8 @@ def is_low_information_candidate(text):
     if compact in LOW_INFO:
         return True
     if BRACKET_TOKEN_RE.fullmatch(compact) and not has_short_attitude_signal(compact):
+        return True
+    if info_len(compact) == 0 and compact and not has_short_attitude_signal(compact):
         return True
     return False
 

@@ -121,6 +121,8 @@ Treat the user's requested labels as final output labels, not as the entire inte
 
 Short text is not deleted for being short; separate it into explicit attitude signals and low-information candidates. Explicit attitude signals enter the sentiment denominator. Low-information candidates are counted separately, sampled for review, and not forced into neutral by default. Do not put pure acknowledgements, greetings, or contextless emoji-only rows into `中性` by default. Examples such as `了解`, `好的`, `收到`, `知道了`, `早安`, `[捂脸]`, `[呲牙]`, `[玫瑰]`, and `[微笑]` are usually `低信息/不可判断` or `不纳入情感分母`. In contrast, short explicit attitude signals such as `[赞]`, `[强]`, `[爱心]`, `支持`, `赞成`, `反对`, and `不支持` should stay in the denominator and receive the corresponding attitude label.
 
+Do not strip emoji or bracketed emoji during initial cleaning. Preserve them for attitude detection and low-information auditing; exclude emoji-only rows from the sentiment denominator only after counting and sampling the low-information bucket.
+
 When the task is a new issue, create the taxonomy from evidence:
 
 1. sample across platform/source, time, text length, and likely events;
