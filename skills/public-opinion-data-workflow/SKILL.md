@@ -85,6 +85,8 @@ Recommended process:
 
 Do not claim that every row was AI-labeled unless every row was actually sent to AI. If using the bundled classifier, describe it as classifier migration from AI-reviewed samples, not as full-row AI labeling.
 
+Do not hard-code labels in Python, CSV, JSON, or dictionaries and present them as AI semantic labels. Scripts can prepare batches, preserve `row_id`, validate files, merge AI outputs, train classifiers, and generate summaries. They must not replace the semantic decision step. The sampled text must be read and labeled by the current AI agent's natural-language understanding or by an external LLM/API. Rule-generated labels are only candidates or diagnostics until AI-reviewed or human-confirmed.
+
 Do not use classifier self-training as the normal path. Classifier predictions are not truth labels and should not be added back into the training set unless they have been AI-reviewed or human-confirmed. If pseudo-labeling is used only for an internal experiment, keep pseudo-labels separate, cap class additions per round, include neutral/weak-attitude samples deliberately, and do not treat the pseudo-labeled run as a deliverable result.
 
 For three-class positive/neutral/negative runs, neutral is a real report label, not a leftover category. Include neutral examples in seed samples, uncertain samples, and audits. If many neutral rows shift to positive or negative between rounds, review those transitions before reporting.

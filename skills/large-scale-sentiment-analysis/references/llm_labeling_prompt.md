@@ -15,6 +15,7 @@ Replace these examples with task-specific labels and roles:
 - Preserve `row_id`.
 - Do not classify by isolated keywords only.
 - Do not use a keyword-rule script as a substitute for this labeling step.
+- Do not hard-code labels inside Python, CSV, JSON, or dictionaries and present them as AI semantic labels. Code may prepare, batch, validate, merge, and train; the label choice must come from natural-language reading by the AI or an external LLM/API.
 - If the batch is too large to label carefully, split it into smaller batches, reduce the requested batch size, or ask for an external LLM/API workflow. Do not produce rule-based pseudo-labels and do not call them AI labels.
 - Consider semantics, tone, negation, sarcasm, and context.
 - First decide whether the text is relevant to the user's topic and meaningful enough to enter the output-label denominator.
