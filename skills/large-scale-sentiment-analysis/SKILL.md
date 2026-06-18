@@ -213,7 +213,14 @@ For each round:
 5. Send selected rows to LLM.
 6. Merge labels, rerun coverage validation, and repeat.
 
-When selecting samples for review, prefer unique text expressions first so AI effort is not spent repeatedly labeling identical comments. Keep `duplicate_count` or equivalent volume fields so repeated comments still contribute to final volume shares. Review duplicate-heavy expressions separately only when repetition itself may be spam, coordinated behavior, or an important signal.
+When selecting samples for review, use unique text expressions first so AI effort is not spent repeatedly labeling identical comments. If many rows have the same `text_hash` or `clean_text`, label that expression once, then map the confirmed label back to all duplicate rows through `text_hash` while preserving `duplicate_count` for final volume shares. Review duplicate-heavy expressions separately only when repetition itself may be spam, coordinated behavior, or an important signal.
+
+Active-learning guardrails:
+
+- Deduplicate review batches by text expression before AI labeling; keep volume fields for final statistics.
+- If one label is more than 80% of a newly AI-labeled batch, pause before training. Audit the sampling method, duplicate concentration, label definitions, and missing-class coverage; then supplement underrepresented labels.
+- Do not estimate required rounds by `low-confidence row count / review batch size`.
+- If more than 90% of rows are low-confidence after a round, enter diagnostic mode: check sampling strategy, denominator/exclusion handling, duplicate expressions, confidence threshold, probability calibration, and label coverage before continuing iteration.
 
 Do not use self-training as the default active-learning mechanism. Classifier predictions are not truth labels. Add rows to the training set only after AI semantic labeling or human review confirms them. If pseudo-labeling is used only for an internal experiment, apply all of these guardrails and do not treat it as a deliverable result:
 

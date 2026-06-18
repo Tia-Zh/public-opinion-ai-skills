@@ -51,6 +51,8 @@ Minimum output files are not the same as convergence. For sentiment, stance, or 
 
 Low-confidence rows are not a backlog to clear. Do not infer the number of required rounds by dividing low-confidence row count by review batch size. A high low-confidence share is a diagnostic signal: inspect duplicate expressions, low-information rows, threshold settings, probability calibration, label coverage, and sampling strategy. Remaining low-confidence rows may be reported as uncertainty when audits show they do not materially change the main distribution.
 
+Before training on a new AI-labeled batch, check batch health. If one label exceeds 80% of the batch, pause and audit sampling, duplicate concentration, label definitions, and missing-class coverage. If more than 90% of full-data rows are low-confidence after scoring, do not keep mechanically selecting the next low-confidence batch; diagnose the data and model setup first.
+
 The denominator chain, label distribution, and audit samples are required evidence. They prove the process is traceable, but they do not prove convergence until the audit results are reviewed. If the user asks to stop before these checks pass, mark the run as stopped early or diagnostic rather than final.
 
 ## Recommended Wording
