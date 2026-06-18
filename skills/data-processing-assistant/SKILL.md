@@ -74,7 +74,7 @@ Otherwise, make a reasonable assumption, state it briefly, and continue.
 Use bundled scripts when they fit; patch or extend them for the user's exact task when needed.
 
 - `scripts/inspect_tabular.py`: inspect Excel/CSV/TSV files and produce a schema summary.
-- `scripts/process_tabular.py`: run configurable cleaning, merging, filtering, dedupe, and export.
+- `scripts/process_tabular.py`: run configurable cleaning, merging, filtering, duplicate marking or optional dedupe, and export.
 - `scripts/make_charts.py`: generate common charts from processed tables.
 - `scripts/discover_topics.py`: use dependency-light TF-IDF + k-means to discover rough candidate topics when no category taxonomy is provided.
 - `scripts/privacy_audit.py`: identify likely sensitive columns and text patterns that should be hashed, masked, or dropped.

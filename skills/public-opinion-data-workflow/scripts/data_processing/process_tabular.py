@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Configurable table processing: merge, clean, filter, dedupe, export."""
+"""Configurable table processing: merge, clean, filter, optional dedupe, export.
+
+The dedupe config is opt-in. For sentiment, stance, policy-feedback, or
+public-opinion share analysis, preserve repeated rows unless the user asks for
+a unique-expression view or spam cleanup.
+"""
 
 from __future__ import annotations
 
@@ -137,6 +142,8 @@ def process(config: dict[str, Any]) -> tuple[pd.DataFrame, pd.DataFrame, list[di
         df["命中关键词"] = df[keyword_col].fillna("").astype(str).map(lambda x: "、".join([t for t in terms if t and t.lower() in x.lower()]))
         record("关键词筛选", before, len(df), keyword_filter)
 
+    # Optional only: run this block when the config explicitly asks for dedupe.
+    # Repeated comments may be valid volume in public-opinion analysis.
     dedupe = config.get("dedupe") or {}
     if dedupe.get("exact") and primary_clean in df.columns:
         before = len(df)

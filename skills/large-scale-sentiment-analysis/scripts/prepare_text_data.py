@@ -1,3 +1,12 @@
+"""Prepare text for sentiment analysis without silently collapsing volume.
+
+Default behavior keeps repeated comments because repeated comments may represent
+real public-opinion volume. The script always records text_hash and
+duplicate_count. It only removes duplicate rows when --dedupe-mode is explicitly
+set to exact-text or source-date-text for expression-level analysis or spam
+cleanup.
+"""
+
 import argparse
 import hashlib
 import re
@@ -102,6 +111,9 @@ def main():
         short_removed = 0
         short_kept = int(cleaned["short_attitude_signal"].sum())
 
+    # Mark duplicate expressions for audit while preserving all rows by default.
+    # Do not interpret the drop_duplicates branches below as the normal path:
+    # they run only when --dedupe-mode is explicitly set away from "none".
     cleaned["duplicate_count"] = cleaned.groupby(["clean_text"])["clean_text"].transform("size")
     duplicate_extra_rows = int(len(cleaned) - cleaned["clean_text"].nunique())
     if args.dedupe_mode == "exact-text":
