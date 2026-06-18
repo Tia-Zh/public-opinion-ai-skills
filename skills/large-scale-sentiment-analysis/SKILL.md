@@ -76,7 +76,7 @@ When invoked by `data-processing-assistant`, expect the main skill to provide th
 
 Use `scripts/prepare_text_data.py` to normalize text, hash sensitive source fields, mark short/duplicated rows, and assign stable `row_id`.
 
-Do not remove comments only because they are short. In public-opinion data, short texts such as `[赞]`, `[强]`, `支持`, `赞成`, `点赞`, `反对`, or short complaint phrases can be real attitude signals. The default preparation script does not filter by length. If a task uses `--min-info-len`, keep rows with short attitude signals and record how many short rows were removed or retained.
+Do not remove comments only because they are short. Short text is not deleted for being short; it must be separated into explicit attitude signals and low-information candidates. Explicit attitude signals enter the sentiment denominator. Low-information candidates are counted separately, sampled for review, and not forced into neutral by default. In public-opinion data, short texts such as `[赞]`, `[强]`, `支持`, `赞成`, `点赞`, `反对`, or short complaint phrases can be real attitude signals. The default preparation script does not filter by length. If a task uses `--min-info-len`, keep rows with short attitude signals and record how many short rows were removed or retained.
 
 The preparation script marks contextless acknowledgement or emoji-only candidates with `low_information_candidate`. Use this flag for audit, denominator exclusion, or targeted review. Do not treat the flag as final truth without checking a sample, because some emoji may be meaningful in a specific platform context.
 

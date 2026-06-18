@@ -20,7 +20,7 @@ Use internal flags or labels when needed:
 
 Report these separately. Do not force them into `中立` unless the user explicitly asks for every row to receive one of the output labels.
 
-Common low-information examples include pure acknowledgements or greetings such as `了解`, `好的`, `收到`, `知道了`, `早安`, and emoji-only rows such as `[捂脸]`, `[呲牙]`, `[玫瑰]`, `[微笑]` when no surrounding text establishes an attitude. These should usually be excluded from the sentiment denominator or sent to review, not counted as `中立`. Short explicit attitude signals such as `[赞]`, `[强]`, `[爱心]`, `支持`, `赞成`, `反对`, and `不支持` are meaningful and should be labeled by attitude.
+Short text is not deleted for being short; separate it into explicit attitude signals and low-information candidates. Explicit attitude signals enter the sentiment denominator. Low-information candidates are counted separately, sampled for review, and not forced into `中立` by default. Common low-information examples include pure acknowledgements or greetings such as `了解`, `好的`, `收到`, `知道了`, `早安`, and emoji-only rows such as `[捂脸]`, `[呲牙]`, `[玫瑰]`, `[微笑]` when no surrounding text establishes an attitude. These should usually be excluded from the sentiment denominator or sent to review, not counted as `中立`. Short explicit attitude signals such as `[赞]`, `[强]`, `[爱心]`, `支持`, `赞成`, `反对`, and `不支持` are meaningful and should be labeled by attitude.
 
 ## Judgment Rules
 
