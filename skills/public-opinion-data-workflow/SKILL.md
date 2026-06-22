@@ -87,9 +87,9 @@ Recommended process:
 5. Confirm the label taxonomy before large-scale labeling.
 6. Run `profile_text_quality.py` when short text, repeated expressions, platform emoji, URL/mention/contact text, or question-like rows may affect the denominator or error pattern.
 7. Generate a hybrid stratified seed sample rather than sending every row to AI. Prefer platform/source and text-length coverage when available; use date/event strata only when useful and reliable.
-8. Ask AI to label the sample with `row_id,label,confidence,reason,is_sarcasm`.
-9. Merge and validate labels before training.
-10. Audit batch health and validate label coverage: every final report label should have enough AI-reviewed examples before training, with a practical default of at least 20-30 examples per label.
+8. Ask AI to label the sample with `row_id,label,confidence,reason,is_sarcasm`. Optionally export the same seed, boundary, transition, or audit samples for user review/correction; user labels can be a minimal `row_id,label` file.
+9. Merge and validate AI/human-reviewed labels before training. For user-corrected labels, use `merge_labels.py --allow-minimal-labels --label-source human_reviewed`.
+10. Audit batch health and validate label coverage: every final report label should have enough AI/human-reviewed examples before training, with a practical default of at least 20-30 examples per label.
 11. Train/calibrate the classifier and score all cleaned rows.
 12. Run `summarize_active_learning_round.py` after scoring, especially when comparing rounds or diagnosing label drift.
 13. Select low-confidence, boundary, sarcasm-like, and random samples for another review round.
@@ -101,7 +101,7 @@ Do not claim that every row was AI-labeled unless every row was actually sent to
 
 Do not hard-code labels in Python, CSV, JSON, or dictionaries and present them as AI semantic labels. Scripts can prepare batches, preserve `row_id`, validate files, merge AI outputs, train classifiers, and generate summaries. They must not replace the semantic decision step. The sampled text must be read and labeled by the current AI agent's natural-language understanding or by an external LLM/API. Rule-generated labels are only candidates or diagnostics until AI-reviewed or human-confirmed.
 
-Do not use classifier self-training as the normal path. Classifier predictions are not truth labels and should not be added back into the training set unless they have been AI-reviewed or human-confirmed. If pseudo-labeling is used only for an internal experiment, keep pseudo-labels separate, cap class additions per round, include neutral/weak-attitude samples deliberately, and do not treat the pseudo-labeled run as a deliverable result.
+Do not use classifier self-training as the normal path. Classifier predictions are not truth labels and should not be added back into the training set unless they have been AI-reviewed or human-confirmed. User-provided corrections are optional but should be treated as high-quality reviewed labels when present. If pseudo-labeling is used only for an internal experiment, keep pseudo-labels separate, cap class additions per round, include neutral/weak-attitude samples deliberately, and do not treat the pseudo-labeled run as a deliverable result.
 
 For three-class positive/neutral/negative runs, neutral is a real report label, not a leftover category. Include neutral examples in seed samples, uncertain samples, and audits. If many neutral rows shift to positive or negative between rounds, review those transitions before reporting.
 

@@ -28,6 +28,22 @@ def main():
     ap.add_argument("--output-dir", required=True)
     ap.add_argument("--valid-labels", required=True, help="Comma-separated labels")
     ap.add_argument("--label-map", default="", help="Optional JSON or CSV alias-to-canonical label map")
+    ap.add_argument(
+        "--allow-minimal-labels",
+        action="store_true",
+        help="Allow human review files with only row_id,label. Missing confidence/reason/is_sarcasm are filled.",
+    )
+    ap.add_argument(
+        "--label-source",
+        default="ai_reviewed",
+        help="Value written to label_source when the labels file has no label_source column.",
+    )
+    ap.add_argument(
+        "--duplicate-policy",
+        choices=["last", "first", "error"],
+        default="last",
+        help="How to handle duplicate row_id values in the label file before merging.",
+    )
     args = ap.parse_args()
 
     out_dir = Path(args.output_dir).expanduser().resolve()
@@ -37,10 +53,19 @@ def main():
     labels = pd.read_csv(Path(args.labels).expanduser().resolve(), encoding="utf-8-sig")
     labels.columns = [str(c).strip() for c in labels.columns]
 
-    required = ["row_id", "label", "confidence", "reason", "is_sarcasm"]
+    required = ["row_id", "label"] if args.allow_minimal_labels else ["row_id", "label", "confidence", "reason", "is_sarcasm"]
     missing_cols = [c for c in required if c not in labels.columns]
     if missing_cols:
         raise ValueError(f"Missing label columns: {missing_cols}")
+
+    if "confidence" not in labels.columns:
+        labels["confidence"] = 1.0
+    if "reason" not in labels.columns:
+        labels["reason"] = ""
+    if "is_sarcasm" not in labels.columns:
+        labels["is_sarcasm"] = ""
+    if "label_source" not in labels.columns:
+        labels["label_source"] = args.label_source
 
     prepared["row_id"] = normalize_row_id(prepared["row_id"])
     labels["row_id"] = normalize_row_id(labels["row_id"])
@@ -52,15 +77,21 @@ def main():
     valid_labels = {label.strip() for label in args.valid_labels.split(",") if label.strip()}
     invalid = labels[~labels["label"].isin(valid_labels)]
     dupes = labels[labels["row_id"].duplicated(keep=False)]
+    if len(dupes) and args.duplicate_policy == "error":
+        raise ValueError("Duplicate row_id values found in labels file; see duplicate_row_ids.csv after rerun with first/last policy.")
+    labels_for_merge = labels.drop_duplicates("row_id", keep=args.duplicate_policy)
     missing_ids = sorted(set(prepared["row_id"]) - set(labels["row_id"]))
 
-    merged = prepared.merge(labels, on="row_id", how="left")
+    merged = prepared.merge(labels_for_merge, on="row_id", how="left")
     merged.to_csv(out_dir / "merged_labels.csv", index=False, encoding="utf-8-sig")
 
     summary = pd.DataFrame(
         [
             ["prepared_rows", len(prepared)],
             ["label_rows", len(labels)],
+            ["label_rows_after_duplicate_policy", len(labels_for_merge)],
+            ["duplicate_policy", args.duplicate_policy],
+            ["default_label_source", args.label_source],
             ["missing_row_ids", len(missing_ids)],
             ["duplicate_row_ids", labels["row_id"].duplicated().sum()],
             ["invalid_labels", len(invalid)],

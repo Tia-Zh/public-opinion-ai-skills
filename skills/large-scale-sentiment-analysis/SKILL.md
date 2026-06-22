@@ -145,6 +145,16 @@ Required output columns:
 row_id,label,confidence,reason,is_sarcasm
 ```
 
+Human review is an optional quality upgrade, not a required burden on the user. After creating seed, uncertain, boundary, transition, or audit batches, the agent may offer the user a lightweight review file containing `row_id`, `clean_text`, the current label if any, and an empty or editable `label` column. If the user returns corrected labels, treat them as high-quality reviewed labels. If the user does not want to review, continue with AI semantic labeling and disclose that the review was AI-only.
+
+For user-provided labels, accept a minimal CSV with only:
+
+```text
+row_id,label
+```
+
+Optional human review columns may include `reason`, `confidence`, `is_sarcasm`, `review_note`, and `label_source`. Do not force the user to fill technical fields.
+
 ### 4. Merge And Validate Labels
 
 Use `scripts/merge_labels.py` to validate:
@@ -157,7 +167,15 @@ Use `scripts/merge_labels.py` to validate:
 
 Never proceed to charts before row_id coverage is checked.
 
-Before training, validate that the AI-reviewed sample covers every final report label. Use `scripts/validate_label_coverage.py` after merging labels. As a practical default, require at least 20-30 AI-reviewed examples per final label before treating the classifier result as meaningful; use more examples for subtle or easily confused labels such as neutral, criticism, sarcasm, or policy demands.
+For ordinary AI labeling output, run `merge_labels.py` with the full schema. For user-corrected labels that only contain `row_id,label`, run it with `--allow-minimal-labels --label-source human_reviewed`. Example:
+
+```powershell
+python scripts/merge_labels.py --prepared prepared_texts.csv --labels user_reviewed_labels.csv --output-dir merge_user_review --valid-labels "positive,neutral,negative" --allow-minimal-labels --label-source human_reviewed
+```
+
+When AI and human labels conflict, do not silently mix them. Prefer the human-reviewed label for that row, keep `label_source`, and mention in the quality note that human corrections were incorporated.
+
+Before training, validate that the AI/human-reviewed sample covers every final report label. Use `scripts/validate_label_coverage.py` after merging labels. As a practical default, require at least 20-30 reviewed examples per final label before treating the classifier result as meaningful; use more examples for subtle or easily confused labels such as neutral, criticism, sarcasm, or policy demands.
 
 Use `scripts/audit_active_learning_batch.py` before training on each new AI-labeled batch. It checks whether one label dominates the batch and whether duplicate expressions consumed too many review slots.
 
@@ -209,7 +227,7 @@ If installation is not allowed, the Python version is unsupported, or the sklear
 
 For each round:
 
-1. Validate AI-reviewed label coverage.
+1. Validate AI/human-reviewed label coverage.
 2. Train/calibrate classifier on current labeled sample only after coverage is acceptable.
 3. Score unlabeled/full data.
 4. Select uncertain rows:
@@ -223,7 +241,7 @@ For each round:
    - short but attitude-bearing rows;
    - question/反问-like rows, such as `?`, `？`, `吗`, `难道`, `不好吗`, or `哪里不好`;
    - random audit sample.
-5. Send selected rows to LLM.
+5. Send selected rows to LLM, or optionally export them for user review/correction when the user wants to participate.
 6. Merge labels, audit batch health, rerun coverage validation, and repeat.
 
 Apply these active-learning guardrails:
