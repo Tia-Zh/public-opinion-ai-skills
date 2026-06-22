@@ -76,6 +76,8 @@ When invoked by `public-opinion-data-workflow`, expect the main skill to provide
 
 Use `scripts/prepare_text_data.py` to normalize text, hash sensitive source fields, mark short/duplicated rows, and assign stable `row_id`.
 
+Use `scripts/profile_text_quality.py` before or after preparation when the dataset has many short comments, repeated expressions, question-like rows, platform emoji, URL/mention/contact text, or suspected low-information rows. This script produces deterministic counts and samples for audit. It does not classify sentiment.
+
 Do not remove comments only because they are short. Short text is not deleted for being short; it must be separated into explicit plain-text attitude signals and low-information candidates. Explicit plain-text attitude signals enter the sentiment denominator. Low-information candidates are counted separately, sampled for review, and not forced into neutral by default. In public-opinion data, short texts such as `支持`, `赞成`, `点赞`, `反对`, or short complaint phrases can be real attitude signals. The default preparation script does not filter by length, but it does remove emoji-only rows from `prepared_texts.csv` and logs them separately. If a task uses `--min-info-len`, keep rows with short plain-text attitude signals and record how many short rows were removed or retained.
 
 The preparation script marks contextless acknowledgement candidates with `low_information_candidate` and removes emoji-only rows by default into `removed_emoji_only_rows.csv`. Use the removed file for count disclosure or optional audit, not as part of the effective sentiment denominator.
@@ -236,6 +238,8 @@ Use `scripts/propagate_duplicate_labels.py` when a deduplicated review batch has
 
 Use `scripts/diagnose_predictions.py` after scoring full data when low-confidence share is high or a run appears stuck. Use its output to decide whether to adjust sampling, denominator/exclusions, duplicate handling, thresholds, calibration, or label coverage before another iteration.
 
+Use `scripts/summarize_active_learning_round.py` after each scored round to create stable distribution, confidence, duplicate, and transition diagnostics. If a previous prediction file is provided, it writes a label transition matrix so drift such as neutral-to-negative can be reviewed instead of guessed from conversation logs.
+
 For targeted supplementation, use `scripts/make_targeted_samples.py` when a weak label column or keyword map is available. Example:
 
 ```powershell
@@ -338,6 +342,7 @@ If showing risk voices separately, note:
 Bundled scripts are starting points. Patch column names and label lists for the concrete dataset.
 
 - `scripts/prepare_text_data.py`: clean, hash, mark duplicates, create `row_id`.
+- `scripts/profile_text_quality.py`: profile empty, short, emoji-only, low-information, duplicate, privacy-risk, and question-like rows.
 - `scripts/make_llm_batches.py`: create hybrid stratified AI-labeling batch files and a prompt.
 - `scripts/merge_labels.py`: merge labels and validate row_id coverage.
 - `scripts/validate_label_coverage.py`: check whether each final label has enough AI-reviewed examples before training.
@@ -346,6 +351,7 @@ Bundled scripts are starting points. Patch column names and label lists for the 
 - `scripts/select_uncertain.py`: select low-confidence and boundary samples, deduplicating review text expressions by default while preserving volume fields.
 - `scripts/propagate_duplicate_labels.py`: map labels from unique reviewed expressions back to all duplicate rows.
 - `scripts/diagnose_predictions.py`: summarize low-confidence, margin, label, and duplicate health before continuing iteration.
+- `scripts/summarize_active_learning_round.py`: summarize per-round label distribution, confidence, audit status, and label transitions.
 - `scripts/make_targeted_samples.py`: create targeted review batches for underrepresented labels using weak labels or keyword candidates.
 - `scripts/build_summary_charts.py`: create summary tables and monthly charts.
 - `scripts/compare_labels.py`: compare predictions with an existing reference label column when available.

@@ -65,6 +65,7 @@ Use scripts in `scripts/sentiment/`:
 - `check_dependencies.py`: check current Python for core and recommended packages.
 - `install_optional_dependencies.py`: install core/recommended packages only after user approval.
 - `prepare_text_data.py`: clean, hash sensitive fields, mark duplicates, and create stable `row_id`.
+- `profile_text_quality.py`: profile empty, short, emoji-only, low-information, duplicate, privacy-risk, and question-like rows.
 - `make_llm_batches.py`: create hybrid stratified AI-labeling samples and batch payloads.
 - `merge_labels.py`: validate and merge AI labels.
 - `audit_active_learning_batch.py`: check label imbalance and duplicate concentration in newly labeled batches.
@@ -72,6 +73,7 @@ Use scripts in `scripts/sentiment/`:
 - `select_uncertain.py`: select uncertain, low-confidence, sarcasm-like, and random audit rows.
 - `propagate_duplicate_labels.py`: map labels from unique reviewed expressions back to repeated rows.
 - `diagnose_predictions.py`: summarize low-confidence, margin, label, and duplicate health before continuing iteration.
+- `summarize_active_learning_round.py`: summarize each round's label distribution, confidence, audit status, and label transitions.
 - `build_summary_charts.py`: create monthly structure charts and denominator tables.
 - `compare_labels.py`: optional evaluation when a reference label column already exists.
 
@@ -82,14 +84,16 @@ Recommended process:
 3. If labels are provided, rewrite them into a compact taxonomy with definitions, inclusion/exclusion rules, examples, and edge cases.
 4. If labels are not provided, create an exploratory sample and optionally run `discover_topics.py`; use clusters and keyword summaries only as evidence for drafting attitude/sentiment labels, not as final labels.
 5. Confirm the label taxonomy before large-scale labeling.
-6. Generate a hybrid stratified seed sample rather than sending every row to AI. Prefer platform/source and text-length coverage when available; use date/event strata only when useful and reliable.
-7. Ask AI to label the sample with `row_id,label,confidence,reason,is_sarcasm`.
-8. Merge and validate labels before training.
-9. Audit batch health and validate label coverage: every final report label should have enough AI-reviewed examples before training, with a practical default of at least 20-30 examples per label.
-10. Train/calibrate the classifier and score all cleaned rows.
-11. Select low-confidence, boundary, sarcasm-like, and random samples for another review round.
-12. Repeat until label distribution and audit consistency are stable enough for the use case.
-13. Generate final tables, charts, and method notes.
+6. Run `profile_text_quality.py` when short text, repeated expressions, platform emoji, URL/mention/contact text, or question-like rows may affect the denominator or error pattern.
+7. Generate a hybrid stratified seed sample rather than sending every row to AI. Prefer platform/source and text-length coverage when available; use date/event strata only when useful and reliable.
+8. Ask AI to label the sample with `row_id,label,confidence,reason,is_sarcasm`.
+9. Merge and validate labels before training.
+10. Audit batch health and validate label coverage: every final report label should have enough AI-reviewed examples before training, with a practical default of at least 20-30 examples per label.
+11. Train/calibrate the classifier and score all cleaned rows.
+12. Run `summarize_active_learning_round.py` after scoring, especially when comparing rounds or diagnosing label drift.
+13. Select low-confidence, boundary, sarcasm-like, and random samples for another review round.
+14. Repeat until label distribution and audit consistency are stable enough for the use case.
+15. Generate final tables, charts, and method notes.
 
 Do not claim that every row was AI-labeled unless every row was actually sent to AI. If using the bundled classifier, describe it as classifier migration from AI-reviewed samples, not as full-row AI labeling.
 
