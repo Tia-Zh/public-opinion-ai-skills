@@ -74,6 +74,7 @@ Use scripts in `scripts/sentiment/`:
 - `propagate_duplicate_labels.py`: map labels from unique reviewed expressions back to repeated rows.
 - `diagnose_predictions.py`: summarize low-confidence, margin, label, and duplicate health before continuing iteration.
 - `summarize_active_learning_round.py`: summarize each round's label distribution, confidence, audit status, and label transitions.
+- `convergence_gate.py`: decide whether to continue, audit first, mark incomplete, or allow a stopping candidate.
 - `build_summary_charts.py`: create monthly structure charts and denominator tables.
 - `compare_labels.py`: optional evaluation when a reference label column already exists.
 
@@ -93,7 +94,8 @@ Recommended process:
 12. Run `summarize_active_learning_round.py` after scoring, especially when comparing rounds or diagnosing label drift.
 13. Select low-confidence, boundary, sarcasm-like, and random samples for another review round.
 14. Repeat until label distribution and audit consistency are stable enough for the use case.
-15. Generate final tables, charts, and method notes.
+15. Before stopping, run `convergence_gate.py` with current predictions, previous predictions, merged reviewed labels, latest reviewed batch if available, and audit labels. Read `gate_decision.csv` first, then `gate_reasons.csv`. Do not call the run final unless the gate returns `candidate_stop`, or clearly disclose why the run stopped early.
+16. Generate final tables, charts, and method notes.
 
 Do not claim that every row was AI-labeled unless every row was actually sent to AI. If using the bundled classifier, describe it as classifier migration from AI-reviewed samples, not as full-row AI labeling.
 

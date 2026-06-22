@@ -19,9 +19,10 @@ Core method:
 6. Run the classifier on all data only after at least one AI-labeled seed batch exists.
 7. Select uncertain/boundary/sarcasm-like samples for another LLM labeling round.
 8. Repeat active-learning rounds until the quality checks converge. If the available AI cannot label the requested sample carefully, reduce batch size, split batches, or use an external LLM/API; do not replace AI semantic labeling with rules.
-9. Run final full-data classification only after convergence criteria are met or clearly disclose why the run stopped early.
-10. Audit low-confidence, uncertain, and random class samples.
-11. Generate report-ready tables and charts.
+9. Before stopping, run `scripts/convergence_gate.py`. Do not call the run final unless the gate returns `candidate_stop`, or clearly disclose why the run stopped early.
+10. Run final full-data classification only after convergence criteria are met or clearly disclose why the run stopped early.
+11. Audit low-confidence, uncertain, and random class samples.
+12. Generate report-ready tables and charts.
 
 Recommended wording:
 
@@ -240,6 +241,21 @@ Use `scripts/diagnose_predictions.py` after scoring full data when low-confidenc
 
 Use `scripts/summarize_active_learning_round.py` after each scored round to create stable distribution, confidence, duplicate, and transition diagnostics. If a previous prediction file is provided, it writes a label transition matrix so drift such as neutral-to-negative can be reviewed instead of guessed from conversation logs.
 
+Before stopping, run `scripts/convergence_gate.py` using the current predictions, previous predictions, merged AI/human-reviewed labels, latest reviewed batch if available, and audit labels. Treat the gate result as follows:
+
+- `continue`: continue targeted AI review, label supplementation, or retraining before final reporting.
+- `audit_needed`: do not stop or iterate mechanically; review the named problem samples first.
+- `candidate_stop`: objective checks allow stopping as a candidate; AI/user should still confirm business acceptability.
+- `incomplete`: required evidence is missing; describe the run as incomplete or stage-gated.
+
+Example:
+
+```powershell
+python scripts/convergence_gate.py --predictions round2_predictions.csv --previous-predictions round1_predictions.csv --reviewed-labels merged_reviewed_labels.csv --new-reviewed-labels round2_reviewed_labels.csv --audit-labels audit_reviewed.csv --target-labels "positive,neutral,negative" --review-rounds 2 --output-dir gate_round2
+```
+
+Read `gate_decision.csv` first, then `gate_reasons.csv`. If the gate does not return `candidate_stop`, do not present the run as final.
+
 For targeted supplementation, use `scripts/make_targeted_samples.py` when a weak label column or keyword map is available. Example:
 
 ```powershell
@@ -257,6 +273,8 @@ Do not stop because a fixed number of rounds has been reached. Also do not treat
 - key categories such as employment anxiety, risk concern, sarcasm, and neutral information no longer frequently confuse with each other;
 - every target label has enough labeled examples or has been deliberately merged/removed with a documented reason;
 - the user explicitly asks to stop and accepts that the run is incomplete.
+
+Use `convergence_gate.py` to enforce this evidence check. Do not rely on conversation-level judgment such as "looks stable" without writing the gate outputs.
 
 If stopping after only one round, do not call the result final. Label it as an incomplete test run and report the missing review steps.
 
@@ -352,6 +370,7 @@ Bundled scripts are starting points. Patch column names and label lists for the 
 - `scripts/propagate_duplicate_labels.py`: map labels from unique reviewed expressions back to all duplicate rows.
 - `scripts/diagnose_predictions.py`: summarize low-confidence, margin, label, and duplicate health before continuing iteration.
 - `scripts/summarize_active_learning_round.py`: summarize per-round label distribution, confidence, audit status, and label transitions.
+- `scripts/convergence_gate.py`: decide whether to continue, audit first, mark incomplete, or allow a stopping candidate.
 - `scripts/make_targeted_samples.py`: create targeted review batches for underrepresented labels using weak labels or keyword candidates.
 - `scripts/build_summary_charts.py`: create summary tables and monthly charts.
 - `scripts/compare_labels.py`: compare predictions with an existing reference label column when available.
