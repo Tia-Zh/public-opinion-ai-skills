@@ -40,6 +40,8 @@ For any sentiment/stance output, include denominator fields before reporting sha
 
 If these fields are missing, the output is a diagnostic/intermediate file, not a final sentiment report.
 
+Before final delivery, run `scripts/sentiment/validate_final_package.py` when the task includes sentiment or stance percentages. The final package should pass this check before it is described as final.
+
 ## Charts
 
 Every chart should have:

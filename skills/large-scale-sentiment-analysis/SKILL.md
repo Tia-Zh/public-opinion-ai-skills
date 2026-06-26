@@ -24,6 +24,7 @@ Core method:
 11. Audit low-confidence, uncertain, and random class samples.
 12. Run `scripts/validate_denominator_gate.py` on the final row-level output. Do not report sentiment/stance shares until it passes.
 13. Generate report-ready tables and charts.
+14. Run `scripts/validate_final_package.py` on the deliverable folder before calling the output final.
 
 Recommended wording:
 
@@ -325,6 +326,7 @@ During active-learning iterations, keep outputs lean:
 - For datasets above 50,000 rows, keep full predictions as CSV unless the user explicitly asks for full Excel.
 - Do not present a one-round result as the main deliverable if a second-round review is still pending. First show the next review batch and quality status.
 - Before any final class percentage, run `scripts/validate_denominator_gate.py`. If it fails, fix denominator fields or mark the run as incomplete/diagnostic instead of reporting final shares.
+- Before calling a package final, run `scripts/validate_final_package.py` with the final row-level output.
 
 ### Windows And File Handling Guardrails
 
@@ -396,6 +398,7 @@ Bundled scripts are starting points. Patch column names and label lists for the 
 - `scripts/summarize_active_learning_round.py`: summarize per-round label distribution, confidence, audit status, and label transitions.
 - `scripts/convergence_gate.py`: decide whether to continue, audit first, mark incomplete, or allow a stopping candidate.
 - `scripts/validate_denominator_gate.py`: hard-check denominator inclusion and exclusion-reason fields before final percentages.
+- `scripts/validate_final_package.py`: final delivery gate for readable outputs, denominator evidence, and required artifacts.
 - `scripts/make_targeted_samples.py`: create targeted review batches for underrepresented labels using weak labels or keyword candidates.
 - `scripts/build_summary_charts.py`: create summary tables and monthly charts.
 - `scripts/compare_labels.py`: compare predictions with an existing reference label column when available.

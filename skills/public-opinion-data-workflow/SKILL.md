@@ -7,6 +7,18 @@ description: "当需要端到端处理中文舆情、社交媒体、问卷、评
 
 Use this skill as the recommended single installable entrypoint for Chinese public-opinion data processing and large-scale comment sentiment/stance analysis. It combines the general table-processing workflow with the specialist large-scale Chinese sentiment workflow.
 
+## Operating Contract
+
+Run stable scripts for mechanical work; use AI for semantic judgment. Scripts may inspect files, clean text, de-identify, mark duplicates, create batches, merge labels, train classifiers, select review samples, and validate gates. Scripts must not invent sentiment labels and call them AI labeling.
+
+For sentiment or stance runs, do not output final percentages until all three gates are satisfied:
+
+1. label evidence exists: labels come from AI semantic labeling or human review, not unreviewed keywords or classifier guesses;
+2. convergence evidence exists: `convergence_gate.py` returns `candidate_stop`, or the run is clearly marked incomplete/diagnostic;
+3. denominator evidence exists: `validate_denominator_gate.py` passes, with row-level denominator inclusion, exclusion reason, and effective denominator.
+
+Use `validate_final_package.py` as the last scripted check before delivery.
+
 ## Default Route
 
 1. Inspect the source file before transforming it. For Excel workbooks, examine every relevant sheet.
@@ -25,7 +37,7 @@ Stay in the general workflow when:
 - the task is cleaning, merging, deduplication, keyword filtering, charting, or exporting;
 - the dataset is small enough for direct review or full AI labeling;
 - labels are simple, such as positive/neutral/negative;
-- the user does not need uncertainty review, sarcasm review, or denominator disclosure.
+- the user does not need active-learning review, sarcasm review, or classifier migration. Basic denominator disclosure is still required for any sentiment/stance percentages.
 
 Switch to the large-scale sentiment workflow when:
 
@@ -76,6 +88,7 @@ Use scripts in `scripts/sentiment/`:
 - `summarize_active_learning_round.py`: summarize each round's label distribution, confidence, audit status, and label transitions.
 - `convergence_gate.py`: decide whether to continue, audit first, mark incomplete, or allow a stopping candidate.
 - `validate_denominator_gate.py`: hard-check that final sentiment/stance outputs include denominator inclusion and exclusion-reason fields before shares are reported.
+- `validate_final_package.py`: final delivery gate for readable outputs, denominator evidence, and required artifacts.
 - `build_summary_charts.py`: create monthly structure charts and denominator tables.
 - `compare_labels.py`: optional evaluation when a reference label column already exists.
 
@@ -98,6 +111,7 @@ Recommended process:
 15. Before stopping, run `convergence_gate.py` with current predictions, previous predictions, merged reviewed labels, latest reviewed batch if available, and audit labels. Read `gate_decision.csv` first, then `gate_reasons.csv`. Do not call the run final unless the gate returns `candidate_stop`, or clearly disclose why the run stopped early.
 16. Run `validate_denominator_gate.py` on the final row-level output. Do not report sentiment/stance shares until it passes.
 17. Generate final tables, charts, and method notes.
+18. Run `validate_final_package.py` on the deliverable folder before calling the output final.
 
 Do not claim that every row was AI-labeled unless every row was actually sent to AI. If using the bundled classifier, describe it as classifier migration from AI-reviewed samples, not as full-row AI labeling.
 
@@ -200,4 +214,5 @@ Before final delivery:
 - disclose whether the label taxonomy was user-provided or built from exploratory samples;
 - generate overall label distribution for every sentiment run; generate monthly/event charts only when a usable date/event column exists or the user asks for trend analysis;
 - avoid presenting small-sample tests as final accuracy;
-- include audit samples when results are subjective.
+- include audit samples when results are subjective;
+- run `validate_final_package.py` when packaging final deliverables.
