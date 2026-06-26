@@ -32,6 +32,14 @@ Use user-facing names, not internal code names. Examples:
 - `主题标签`
 - `删除原因`
 
+For any sentiment/stance output, include denominator fields before reporting shares:
+
+- `是否纳入情感分母` or an equivalent inclusion flag
+- `排除原因` for rows excluded from the denominator
+- an effective-denominator summary, such as `有效分母`
+
+If these fields are missing, the output is a diagnostic/intermediate file, not a final sentiment report.
+
 ## Charts
 
 Every chart should have:

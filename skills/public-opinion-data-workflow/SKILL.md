@@ -75,6 +75,7 @@ Use scripts in `scripts/sentiment/`:
 - `diagnose_predictions.py`: summarize low-confidence, margin, label, and duplicate health before continuing iteration.
 - `summarize_active_learning_round.py`: summarize each round's label distribution, confidence, audit status, and label transitions.
 - `convergence_gate.py`: decide whether to continue, audit first, mark incomplete, or allow a stopping candidate.
+- `validate_denominator_gate.py`: hard-check that final sentiment/stance outputs include denominator inclusion and exclusion-reason fields before shares are reported.
 - `build_summary_charts.py`: create monthly structure charts and denominator tables.
 - `compare_labels.py`: optional evaluation when a reference label column already exists.
 
@@ -95,7 +96,8 @@ Recommended process:
 13. Select low-confidence, boundary, sarcasm-like, and random samples for another review round.
 14. Repeat until label distribution and audit consistency are stable enough for the use case.
 15. Before stopping, run `convergence_gate.py` with current predictions, previous predictions, merged reviewed labels, latest reviewed batch if available, and audit labels. Read `gate_decision.csv` first, then `gate_reasons.csv`. Do not call the run final unless the gate returns `candidate_stop`, or clearly disclose why the run stopped early.
-16. Generate final tables, charts, and method notes.
+16. Run `validate_denominator_gate.py` on the final row-level output. Do not report sentiment/stance shares until it passes.
+17. Generate final tables, charts, and method notes.
 
 Do not claim that every row was AI-labeled unless every row was actually sent to AI. If using the bundled classifier, describe it as classifier migration from AI-reviewed samples, not as full-row AI labeling.
 
@@ -151,6 +153,26 @@ When the task is a new issue, create the taxonomy from evidence:
 4. merge clusters into business-meaningful attitude labels;
 5. ask the user to confirm the final taxonomy before full-data classification.
 
+## Denominator Gate (Hard Requirement)
+
+For any sentiment, attitude, stance, or positive/neutral/negative output, first create a row-level denominator decision before reporting percentages. This requirement is domain-general: it applies to three-class sentiment, four-class stance, custom issue labels, and large-scale classifier migration.
+
+Every final row-level output must include:
+
+- a field equivalent to `是否纳入情感分母` / `in_denominator`;
+- a field equivalent to `排除原因` / `exclusion_reason`;
+- enough summary evidence to state the final effective denominator.
+
+Rows that are irrelevant, off-topic, spam, unusable, pure contextless replies, low-information, or emoji-only should be excluded or flagged according to the denominator policy, then reported separately. Do not force them into neutral or any other final report label just because the user requested only a limited output label set.
+
+Run:
+
+```powershell
+python scripts/sentiment/validate_denominator_gate.py --input final_predictions.csv --output denominator_gate_report.csv
+```
+
+If the gate fails, stop before charts and percentages. Fix the row-level fields, audit exclusions, or disclose the run as incomplete/diagnostic. Do not present sentiment or stance shares as final until the gate passes.
+
 ## References
 
 Load only what is needed:
@@ -171,6 +193,7 @@ Before final delivery:
 
 - verify output files exist and can be read back;
 - explain raw rows, cleaned rows, removed rows, labeled rows, and final denominator;
+- for every sentiment/stance run, include row-level denominator inclusion, exclusion reason, and an effective-denominator summary; if `validate_denominator_gate.py` fails, do not report class percentages as final;
 - explain whether repeated comments are counted as volume or deduplicated expressions;
 - explain how short attitude texts were handled;
 - disclose whether labels are AI-labeled, weak-rule labels, classifier-migrated labels, or reviewed labels;

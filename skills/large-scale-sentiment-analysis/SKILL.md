@@ -22,7 +22,8 @@ Core method:
 9. Before stopping, run `scripts/convergence_gate.py`. Do not call the run final unless the gate returns `candidate_stop`, or clearly disclose why the run stopped early.
 10. Run final full-data classification only after convergence criteria are met or clearly disclose why the run stopped early.
 11. Audit low-confidence, uncertain, and random class samples.
-12. Generate report-ready tables and charts.
+12. Run `scripts/validate_denominator_gate.py` on the final row-level output. Do not report sentiment/stance shares until it passes.
+13. Generate report-ready tables and charts.
 
 Recommended wording:
 
@@ -58,6 +59,8 @@ Treat the user's requested labels as the output schema, not necessarily the full
 Do not force irrelevant, off-topic, spam, pure contextless replies, or insufficient-context rows into `中性` just because the user only requested `正面/中性/负面`. `中性` means relevant but with no clear positive or negative attitude. Exclusion rows should be counted and disclosed separately, then removed from the denominator used for the requested output labels unless the user explicitly wants them included.
 
 Treat pure acknowledgements, greetings, and emoji-only rows as denominator/exclusion candidates, not as ordinary `中性`. A row that contains only one or more emoji, or only bracketed platform emoji such as `[赞]`, `[强]`, `[捂脸]`, `[玫瑰]`, should not be treated as a complete attitude by itself. Remove emoji-only rows from the prepared sentiment sample by default, write them to a removed/audit file, and report the count. Short plain-text rows with explicit attitude words, such as `支持`, `赞成`, `反对`, or `不支持`, should be kept and labeled by attitude.
+
+Before reporting sentiment/stance shares, create row-level denominator evidence. Every final output must contain a field equivalent to `是否纳入情感分母` / `in_denominator`, a field equivalent to `排除原因` / `exclusion_reason`, and summary evidence for the final effective denominator. If these fields are missing, do not treat the distribution as final, even if labels have been predicted.
 
 Do not use vague words such as "maybe", "possibly", or "not sure" alone to find ambiguity/review samples; long texts can contain those words while still having a clear stance. Prefer task-specific strategies such as very short context-poor texts, conflicting cues, missing context, weak-rule/model disagreement, or label-specific anchors.
 
@@ -321,6 +324,7 @@ During active-learning iterations, keep outputs lean:
 - Write one summary Excel at the end of the current run with metrics, distributions, AI-labeled samples, low-confidence samples, random audit samples, and a small preview.
 - For datasets above 50,000 rows, keep full predictions as CSV unless the user explicitly asks for full Excel.
 - Do not present a one-round result as the main deliverable if a second-round review is still pending. First show the next review batch and quality status.
+- Before any final class percentage, run `scripts/validate_denominator_gate.py`. If it fails, fix denominator fields or mark the run as incomplete/diagnostic instead of reporting final shares.
 
 ### Windows And File Handling Guardrails
 
@@ -359,6 +363,8 @@ For reports, disclose the denominator:
 - four-class internal share;
 - excluded/uncertain share.
 
+Hard gate: do not calculate or chart final sentiment/stance shares until the final row-level file has passed `scripts/validate_denominator_gate.py`.
+
 ### 7. Charts
 
 Prefer clear denominators:
@@ -389,6 +395,7 @@ Bundled scripts are starting points. Patch column names and label lists for the 
 - `scripts/diagnose_predictions.py`: summarize low-confidence, margin, label, and duplicate health before continuing iteration.
 - `scripts/summarize_active_learning_round.py`: summarize per-round label distribution, confidence, audit status, and label transitions.
 - `scripts/convergence_gate.py`: decide whether to continue, audit first, mark incomplete, or allow a stopping candidate.
+- `scripts/validate_denominator_gate.py`: hard-check denominator inclusion and exclusion-reason fields before final percentages.
 - `scripts/make_targeted_samples.py`: create targeted review batches for underrepresented labels using weak labels or keyword candidates.
 - `scripts/build_summary_charts.py`: create summary tables and monthly charts.
 - `scripts/compare_labels.py`: compare predictions with an existing reference label column when available.

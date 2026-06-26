@@ -20,6 +20,8 @@ Use internal flags or labels when needed:
 
 Report these separately. Do not force them into `中立` unless the user explicitly asks for every row to receive one of the output labels. If the user says "输出正面/中性/负面", treat that as the final sentiment distribution for effective rows; still create separate relevance/effectiveness or exclusion fields for off-topic, spam, and low-information rows.
 
+Hard denominator gate: before reporting any sentiment percentage, the row-level result must include `是否纳入情感分母` and `排除原因` or equivalent columns, and the summary must state the final `有效分母`. If these are missing, do not output final positive/neutral/negative shares. First add the denominator decision, audit excluded/low-information rows, and rerun the summary.
+
 Short text is not deleted for being short; separate it into explicit plain-text attitude signals and low-information candidates. Explicit plain-text attitude signals enter the sentiment denominator. Low-information candidates are counted separately, sampled for review, and not forced into `中立` by default. Common low-information examples include pure acknowledgements or greetings such as `了解`, `好的`, `收到`, `知道了`, `早安`. Rows made only of emoji or bracketed platform emoji such as `[赞]`, `[强]`, `[捂脸]`, `[玫瑰]`, or `[微笑]` should be removed from the prepared sentiment sample by default and counted separately, not counted as `中立`. Short plain-text attitude signals such as `支持`, `赞成`, `反对`, and `不支持` are meaningful and should be labeled by attitude.
 
 Do not strip emoji inside longer text during the first cleaning step because they may help interpret tone. Remove rows made solely of emoji or bracketed platform emoji from the prepared sentiment sample by default, and write them to a removed/audit file with row counts.
@@ -50,5 +52,7 @@ For each labeled row, add:
 - `情绪判断依据`: short plain-language reason
 - `相关性/有效性`: relevant/effective vs irrelevant/low-information when needed
 - `是否纳入情感分母`: yes/no when exclusions exist
+- `排除原因`: required when `是否纳入情感分母` is no
+- `有效分母`: report-level summary count used as the denominator for percentages
 
 For large datasets, label in batches and sample-check edge cases. If confidence is low or the consequences are important, export a `需人工复核` column.
