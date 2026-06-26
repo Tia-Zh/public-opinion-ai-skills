@@ -17,6 +17,8 @@ For sentiment or stance runs, do not output final percentages until all three ga
 2. convergence evidence exists: `convergence_gate.py` returns `candidate_stop`, or the run is clearly marked incomplete/diagnostic;
 3. denominator evidence exists: `validate_denominator_gate.py` passes, with row-level denominator inclusion, exclusion reason, and effective denominator.
 
+Route large sentiment/stance datasets to the large-scale workflow even when the requested labels are only `positive/neutral/negative`. Label simplicity does not remove the need for active learning when full AI labeling is costly or unstable.
+
 Use `validate_final_package.py` as the last scripted check before delivery.
 
 ## Default Route
@@ -35,15 +37,15 @@ Use `validate_final_package.py` as the last scripted check before delivery.
 Stay in the general workflow when:
 
 - the task is cleaning, merging, deduplication, keyword filtering, charting, or exporting;
-- the dataset is small enough for direct review or full AI labeling;
-- labels are simple, such as positive/neutral/negative;
-- the user does not need active-learning review, sarcasm review, or classifier migration. Basic denominator disclosure is still required for any sentiment/stance percentages.
+- the sentiment/stance dataset is small enough for direct full AI labeling or direct review;
+- the user only needs a small-sample/basic labeling result and accepts that active-learning evidence is not being produced.
 
 Switch to the large-scale sentiment workflow when:
 
 - there are thousands or tens of thousands of Chinese comments;
 - full-row AI labeling would be too costly or unstable;
-- labels are more nuanced than positive/neutral/negative;
+- the task is sentiment/stance classification at large scale, even if the requested output labels are only positive/neutral/negative;
+- labels are nuanced, rare, easily confused, or business-critical;
 - sarcasm, mixed sentiment, low-context comments, or risk/stance categories matter;
 - the user needs low-confidence samples, boundary samples, random audit samples, and report-ready denominator notes.
 

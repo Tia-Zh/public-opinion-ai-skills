@@ -4,20 +4,23 @@ Use this reference when a general data-processing task turns into sentiment, sta
 
 ## Route Selection
 
-Use the main `data-processing-assistant` workflow when:
+Use the main data-processing workflow when:
 
-- the dataset is small enough for direct review or full AI labeling;
-- the requested labels are simple, such as positive/neutral/negative;
-- the user does not need iterative audit, uncertainty sampling, or sarcasm review;
+- the task is only cleaning, merging, filtering, charting, or exporting;
+- the sentiment/stance dataset is small enough for direct full AI labeling or direct review;
+- the user only needs a small-sample/basic labeling result and accepts that active-learning evidence is not being produced;
 - the output is mainly a cleaned table plus a basic chart.
 
 Use `large-scale-sentiment-analysis` when:
 
 - the dataset has thousands or tens of thousands of Chinese comments;
 - full AI labeling is too expensive, slow, or unstable;
-- labels include nuanced classes such as risk concern, ridicule, wait-and-see, irrelevant, or uncertain;
+- the task is large-scale sentiment/stance classification, even if the requested output labels are only positive/neutral/negative;
+- labels include nuanced, rare, easily confused, or business-critical classes such as risk concern, ridicule, wait-and-see, irrelevant, or uncertain;
 - sarcasm, reversal, mixed positive/negative expression, or low-context comments are common;
 - the user needs confidence, audit samples, boundary cases, and denominator disclosure.
+
+Do not use label simplicity as a reason to skip active learning on a large dataset. A 100,000-row positive/neutral/negative task still needs sampled AI labeling, classifier migration, review batches, and quality gates unless the user explicitly accepts a non-final smoke test.
 
 ## Handoff Packet
 
